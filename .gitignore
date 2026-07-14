@@ -3,7 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 .venv/
-.venv_exp/
 .env
 
 # OS
@@ -13,5 +12,5 @@ Thumbs.db
 # VS Code
 .vscode/
 
-# Project Data (これらは Git で管理しない)
+# Project Data
 data/
