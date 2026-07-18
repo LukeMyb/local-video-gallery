@@ -11,15 +11,18 @@ function Player() {
   const videoRef = useRef(null);
   const containerRef = useRef(null); // フルスクリーン化する親要素の参照
 
-  // フルスクリーンの状態管理を2種類に分割
-  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false); // PC/Android等
-  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false); // iOS等(CSS制御)
-  const isFullscreen = isNativeFullscreen || isPseudoFullscreen;
+  /* モバイル(スマホ・タブレット)判定 */
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
+
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+  const isFullscreen = isNativeFullscreen;
 
   const [isPlaying, setIsPlaying] = useState(true); // autoPlayのため初期値true
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  // カスタムUIの表示状態を管理するState（初期状態は表示）
   const [showControls, setShowControls] = useState(true);
 
 
@@ -41,27 +44,19 @@ function Player() {
   // フルスクリーン切り替え処理
   const toggleFullscreen = () => {
     const container = containerRef.current;
-    // フルスクリーンAPIが存在するか（iPhone以外か）を判定
-    const canNativeFullscreen = container.requestFullscreen || container.webkitRequestFullscreen;
-
-    if (canNativeFullscreen) {
-      // 標準機能が使える環境 (PC / Android)
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (container.requestFullscreen) {
-          container.requestFullscreen();
-        } else if (container.webkitRequestFullscreen) {
-          container.webkitRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
+    // ネイティブフルスクリーンAPIの呼び出し
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
       }
     } else {
-      // 標準機能が使えない環境 (iPhone Safari等) はCSSによる切り替え
-      setIsPseudoFullscreen(!isPseudoFullscreen);
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
     }
   };
 
@@ -91,82 +86,84 @@ function Player() {
   };
 
   return (
-    <div className="bg-black min-h-screen flex flex-col items-center justify-center p-4">
+    <div 
+      ref={containerRef} 
+      className="fixed inset-0 z-50 w-full h-100dvh bg-black flex flex-col justify-center"
+    >
       {/* 戻るボタン */}
-      {/* フルスクリーン時は戻るボタンを非表示にする（レイアウト崩れ防止） */}
-      <div className={`w-full max-w-5xl mb-4 ${isFullscreen ? 'hidden' : 'block'}`}>
+      <div 
+        className={`absolute top-0 left-0 right-0 p-4 bg-linear-to-b from-black/80 to-transparent transition-opacity duration-300 z-10 ${
+          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
         <button 
           onClick={() => navigate('/')}
-          className="text-white bg-gray-800 px-4 py-2 rounded hover:bg-gray-700 transition"
+          className="text-white bg-gray-800/80 px-4 py-2 rounded hover:bg-gray-700 transition"
         >
-          ← 一覧へ戻る
+          ← 戻る
         </button>
       </div>
 
       {/* Videoプレイヤー */}
-      <div 
-        ref={containerRef} 
-        className={
-          isPseudoFullscreen 
-            ? "fixed inset-0 z-50 w-full h-100dvh bg-black flex flex-col justify-center" 
-            : `w-full max-w-5xl bg-black shadow-lg rounded-lg overflow-hidden border border-gray-800 relative flex flex-col justify-center ${isNativeFullscreen ? 'h-screen' : ''}`
-        }
+      <video 
+        ref={videoRef}
+        autoPlay 
+        playsInline
+        /* 常にコンテナいっぱいに広げ、アスペクト比を維持して黒帯を入れる(object-contain) */
+        className="w-full h-full object-contain cursor-pointer bg-black"
+        src={videoUrl}
+        onClick={() => setShowControls(!showControls)}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onTimeUpdate={() => setCurrentTime(videoRef.current.currentTime)}
+        onLoadedMetadata={() => setDuration(videoRef.current.duration)}
       >
-        <video 
-          ref={videoRef}
-          autoPlay 
-          playsInline
-          /* フルスクリーン時は高さを画面に合わせて黒帯を入れる(object-contain) */
-          className={`w-full cursor-pointer bg-black ${isFullscreen ? 'h-full object-contain' : 'aspect-video'}`}
-          src={videoUrl}
-          onClick={() => setShowControls(!showControls)}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onTimeUpdate={() => setCurrentTime(videoRef.current.currentTime)}
-          onLoadedMetadata={() => setDuration(videoRef.current.duration)}
-        >
-          お使いのブラウザは動画の再生をサポートしていません。
-        </video>
+        お使いのブラウザは動画の再生をサポートしていません。
+      </video>
 
-        {/* カスタムコントロールUI */}
-        <div 
-          className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
-            showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
+      {/* カスタムコントロールUI */}
+      <div 
+        className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 z-10 ${
+          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        
+        {/* シークバーエリア */}
+        <div className="flex items-center gap-4 mb-4">
+          <span className="text-white text-sm font-mono">{formatTime(currentTime)}</span>
+          <input
+            type="range"
+            min={0}
+            max={duration || 100}
+            value={currentTime}
+            onChange={handleSeek}
+            className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          />
+          <span className="text-white text-sm font-mono">{formatTime(duration)}</span>
+        </div>
+
+        {/* ボタンエリア */}
+        <div className="flex items-center justify-between">
+          <div className="w-12"></div> {/* 中央揃えのための見えないスペーサー */}
           
-          {/* シークバーエリア */}
-          <div className="flex items-center gap-4 mb-4">
-            <span className="text-white text-sm font-mono">{formatTime(currentTime)}</span>
-            <input
-              type="range"
-              min={0}
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleSeek}
-              className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-            <span className="text-white text-sm font-mono">{formatTime(duration)}</span>
-          </div>
+          <button
+            onClick={togglePlay}
+            className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-12 h-12 flex items-center justify-center text-xl transition"
+          >
+            {isPlaying ? '⏸' : '▶️'}
+          </button>
 
-          {/* ボタンエリア */}
-          <div className="flex items-center justify-between">
-            <div className="w-12"></div> {/* 中央揃えのための見えないスペーサー */}
-            
-            <button
-              onClick={togglePlay}
-              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-12 h-12 flex items-center justify-center text-xl transition"
-            >
-              {isPlaying ? '⏸' : '▶️'}
-            </button>
-
+          {/* モバイル以外(PC等)の場合のみフルスクリーンボタンを表示 */}
+          {!isMobile ? (
             <button
               onClick={toggleFullscreen}
               className="text-white bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 text-sm flex items-center justify-center transition"
             >
               {isFullscreen ? '縮小' : '全画面'}
             </button>
-          </div>
+          ) : (
+            <div className="w-16"></div> /* レイアウト維持用のスペーサー */
+          )}
         </div>
       </div>
     </div>
