@@ -25,3 +25,8 @@ export const getImageUrl = (itemId) => {
   // サムネイル画像用のURLを構築
   return `${API_URL}/Items/${itemId}/Images/Primary?fillHeight=300&fillWidth=200&quality=90`;
 };
+
+export const getVideoStreamUrl = (itemId) => {
+  // static=true を付与してDirect Play（静的ファイル配信）を強制する
+  return `${API_URL}/Videos/${itemId}/stream?api_key=${API_KEY}&static=true`;
+};
