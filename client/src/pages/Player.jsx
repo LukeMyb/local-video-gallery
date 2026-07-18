@@ -108,7 +108,7 @@ function Player() {
         ref={containerRef} 
         className={
           isPseudoFullscreen 
-            ? "fixed inset-0 z-50 w-full h-[100dvh] bg-black flex flex-col justify-center" 
+            ? "fixed inset-0 z-50 w-full h-100dvh bg-black flex flex-col justify-center" 
             : `w-full max-w-5xl bg-black shadow-lg rounded-lg overflow-hidden border border-gray-800 relative flex flex-col justify-center ${isNativeFullscreen ? 'h-screen' : ''}`
         }
       >
@@ -130,7 +130,7 @@ function Player() {
 
         {/* カスタムコントロールUI */}
         <div 
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
+          className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
             showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
