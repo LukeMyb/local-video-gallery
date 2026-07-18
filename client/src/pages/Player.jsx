@@ -10,7 +10,12 @@ function Player() {
   // 動画プレイヤーのDOM操作用参照と、状態管理
   const videoRef = useRef(null);
   const containerRef = useRef(null); // フルスクリーン化する親要素の参照
-  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // フルスクリーンの状態管理を2種類に分割
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false); // PC/Android等
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false); // iOS等(CSS制御)
+  const isFullscreen = isNativeFullscreen || isPseudoFullscreen;
+
   const [isPlaying, setIsPlaying] = useState(true); // autoPlayのため初期値true
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -21,7 +26,7 @@ function Player() {
   // フルスクリーン状態の変更を検知する副作用（ESCキーでの解除なども検知）
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement || !!document.webkitFullscreenElement);
+      setIsNativeFullscreen(!!document.fullscreenElement || !!document.webkitFullscreenElement);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -35,18 +40,28 @@ function Player() {
 
   // フルスクリーン切り替え処理
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-      } else if (containerRef.current.webkitRequestFullscreen) { // Safari対応
-        containerRef.current.webkitRequestFullscreen();
+    const container = containerRef.current;
+    // フルスクリーンAPIが存在するか（iPhone以外か）を判定
+    const canNativeFullscreen = container.requestFullscreen || container.webkitRequestFullscreen;
+
+    if (canNativeFullscreen) {
+      // 標準機能が使える環境 (PC / Android)
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) { // Safari対応
-        document.webkitExitFullscreen();
-      }
+      // 標準機能が使えない環境 (iPhone Safari等) はCSSによる切り替え
+      setIsPseudoFullscreen(!isPseudoFullscreen);
     }
   };
 
@@ -91,14 +106,18 @@ function Player() {
       {/* Videoプレイヤー */}
       <div 
         ref={containerRef} 
-        className="w-full max-w-5xl bg-black shadow-lg rounded-lg overflow-hidden border border-gray-800 relative flex flex-col justify-center"
+        className={
+          isPseudoFullscreen 
+            ? "fixed inset-0 z-50 w-full h-[100dvh] bg-black flex flex-col justify-center" 
+            : `w-full max-w-5xl bg-black shadow-lg rounded-lg overflow-hidden border border-gray-800 relative flex flex-col justify-center ${isNativeFullscreen ? 'h-screen' : ''}`
+        }
       >
         <video 
           ref={videoRef}
           autoPlay 
           playsInline
           /* フルスクリーン時は高さを画面に合わせて黒帯を入れる(object-contain) */
-          className={`w-full cursor-pointer bg-black ${isFullscreen ? 'h-screen object-contain' : 'aspect-video'}`}
+          className={`w-full cursor-pointer bg-black ${isFullscreen ? 'h-full object-contain' : 'aspect-video'}`}
           src={videoUrl}
           onClick={() => setShowControls(!showControls)}
           onPlay={() => setIsPlaying(true)}
