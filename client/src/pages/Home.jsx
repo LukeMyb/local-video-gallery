@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getVideos, getImageUrl } from '../api';
+import { Menu, Search as SearchIcon, Heart } from 'lucide-react';
 
 function Home() {
   const [videos, setVideos] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -26,16 +28,60 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-20">
-      
-      <div className="p-4 flex flex-col md:flex-row justify-between items-center gap-4 md:sticky md:top-0 md:z-40 md:bg-zinc-900/90 md:backdrop-blur-md md:border-b md:border-zinc-800">
-        <h1 className="text-xl font-bold text-white">動画一覧</h1>
-        <input
-          type="text"
-          placeholder="動画を検索..."
-          className="p-3 bg-[#27272a] rounded-md text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 w-full md:w-1/3 min-w-0"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+
+      {/* ヘッダーおよびステータス表示エリア */}
+      <div className="p-3 md:p-4 md:sticky md:top-0 md:z-40 md:bg-zinc-900/90 md:backdrop-blur-md md:border-b md:border-zinc-800 flex flex-col gap-3">
+        
+        {/* 上段: 操作パネル */}
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* ドロワーボタン */}
+          <button 
+            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
+            title="メニューを開く"
+          >
+            <Menu size={24} />
+          </button>
+
+          {/* 検索窓 */}
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="タグで動画を検索..."
+              className="w-full p-2.5 bg-[#27272a] rounded-md text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* 虫眼鏡ボタン */}
+          <button 
+            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
+            title="検索する"
+          >
+            <SearchIcon size={24} />
+          </button>
+
+          {/* お気に入りボタン */}
+          <button 
+            onClick={() => setIsFavoriteFilter(!isFavoriteFilter)}
+            className={`p-2 rounded-md transition-colors ${
+              isFavoriteFilter 
+                ? 'text-white hover:bg-zinc-800'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+            title="お気に入りのみ表示"
+          >
+            <Heart size={24} className={isFavoriteFilter ? 'fill-current' : ''} />
+          </button>
+        </div>
+
+        {/* 下段: ステータスメッセージ */}
+        <div className="px-2 flex items-center justify-between text-sm">
+          <p className="text-zinc-400">
+            {search || isFavoriteFilter ? '絞り込み結果' : 'すべての動画'}
+            <span className="ml-2 text-zinc-200 font-medium">{videos.length}件</span>
+          </p>
+        </div>
       </div>
 
       <div className="p-2 md:p-4 pt-4 flex-1 flex flex-col gap-4 max-w-7xl mx-auto w-full">
