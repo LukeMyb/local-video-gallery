@@ -56,6 +56,52 @@ function Player() {
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
 
+  // 非アクティブ化のタイマー参照用
+  const timeoutRef = useRef(null);
+
+  // コントロールバー表示のタイマーリセット処理
+  const resetControlsTimeout = () => {
+    setShowControls(true);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // 再生中でなければタイマーは設定しない（ずっと表示したままにする）
+    if (!isPlaying) return;
+
+    timeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  };
+
+  // ユーザー操作を検知してタイマーをリセットする副作用
+  useEffect(() => {
+    const handleActivity = () => {
+      resetControlsTimeout();
+    };
+
+    // マウス移動、クリック、タッチ操作などを監視
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('mousedown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+
+    // 初回マウント時にもタイマーを起動
+    resetControlsTimeout();
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]); // isPlayingが変化したときもタイマーを再設定する
+
+
   // プレイリストから現在の動画の位置(インデックス)を特定し、前後の動画を取得
   const currentIndex = playlist.findIndex((video) => video.Id === id);
   const prevVideo = currentIndex > 0 ? playlist[currentIndex - 1] : null;
@@ -164,6 +210,9 @@ function Player() {
     <div 
       ref={containerRef} 
       className="fixed inset-0 z-50 w-full h-100dvh bg-black flex flex-col justify-center"
+      onMouseLeave={() => {
+        if (isPlaying) setShowControls(false);
+      }}
     >
       {/* 上部コントロールバー（戻るボタンなど） */}
       <div 
@@ -188,9 +237,17 @@ function Player() {
         loop={isLoop}
         onEnded={handleEnded}
         /* 常にコンテナいっぱいに広げ、アスペクト比を維持して黒帯を入れる(object-contain) */
-        className="w-full h-full object-contain cursor-pointer bg-black"
+        className={`w-full h-full object-contain bg-black ${showControls ? 'cursor-pointer' : 'cursor-none'}`}
         src={videoUrl}
-        onClick={() => setShowControls(!showControls)}
+        onMouseDown={(e) => e.stopPropagation()} // mousedownイベントがwindowに伝播するのを防ぐ
+        onClick={() => {
+          if (showControls) {
+             // 既に表示されている状態でクリックした場合は非表示にしつつ一時停止・再生切り替え
+             setShowControls(false);
+          } else {
+             resetControlsTimeout();
+          }
+        }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={() => setCurrentTime(videoRef.current.currentTime)}
@@ -201,6 +258,13 @@ function Player() {
 
       {/* カスタムコントロールUI */}
       <div 
+        onMouseEnter={() => {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          setShowControls(true);
+        }}
+        onMouseLeave={() => {
+          resetControlsTimeout();
+        }}
         className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent px-8 py-6 transition-opacity duration-300 z-10 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
