@@ -1,5 +1,6 @@
 const API_URL = import.meta.env.VITE_JELLYFIN_URL;
 const API_KEY = import.meta.env.VITE_JELLYFIN_API_KEY;
+const USER_ID = import.meta.env.VITE_JELLYFIN_USER_ID;
 
 export const getVideos = async (searchTerm = '') => {
   const url = new URL(`${API_URL}/Items`);
@@ -11,6 +12,11 @@ export const getVideos = async (searchTerm = '') => {
   url.searchParams.append('Recursive', 'true');
   // ソート用にDateCreated(追加日時)を取得する
   url.searchParams.append('Fields', 'DateCreated');
+
+  // ユーザーIDをパラメータに付与して、お気に入りデータ等を含める
+  if (USER_ID) {
+    url.searchParams.append('userId', USER_ID);
+  }
   
   if (searchTerm) {
     url.searchParams.append('searchTerm', searchTerm);
@@ -20,7 +26,15 @@ export const getVideos = async (searchTerm = '') => {
   if (!res.ok) {
     throw new Error('動画の取得に失敗しました');
   }
-  return await res.json();
+
+  const data = await res.json();
+    
+  // デバッグ用にお気に入りステータスが取得できているか確認
+  if (data.Items && data.Items.length > 0) {
+    console.log('UserData(お気に入り等)の取得確認:', data.Items[0].UserData);
+  }
+
+  return data;
 };
 
 export const getImageUrl = (itemId) => {
