@@ -101,11 +101,6 @@ function Home() {
                   className="w-full aspect-2/3 object-cover bg-zinc-800 transition-opacity group-hover:opacity-90"
                   loading="lazy"
                 />
-                <div className="p-2">
-                  <p className="text-sm font-medium text-zinc-300 group-hover:text-white truncate transition-colors">
-                    {video.Name}
-                  </p>
-                </div>
               </Link>
             ))}
           </div>
