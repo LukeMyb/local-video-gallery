@@ -7,8 +7,8 @@ import {
   Pause, 
   SkipBack, 
   SkipForward, 
-  RotateCcw, 
-  RotateCw, 
+  Rewind,
+  FastForward,
   Maximize, 
   Minimize 
 } from 'lucide-react';
@@ -119,13 +119,13 @@ function Player() {
     >
       {/* 上部コントロールバー（戻るボタンなど） */}
       <div 
-        className={`absolute top-0 left-0 right-0 p-4 bg-linear-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 z-10 flex items-center gap-4 ${
+        className={`absolute top-0 left-0 right-0 px-8 portrait:px-4 pb-6 pt-6 portrait:pt-16 landscape:pt-6 bg-linear-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 z-10 flex items-center gap-4 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         <button 
           onClick={() => navigate('/')}
-          className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800/80 rounded-full transition-colors flex items-center justify-center backdrop-blur-sm"
+          className="px-4 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800/80 rounded-full transition-colors flex items-center justify-center"
           title="一覧へ戻る"
         >
           <ArrowLeft size={24} />
@@ -151,7 +151,7 @@ function Player() {
 
       {/* カスタムコントロールUI */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 z-10 ${
+        className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent px-8 py-6 transition-opacity duration-300 z-10 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -182,11 +182,10 @@ function Player() {
               className="text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
               title="10秒戻る"
             >
-              <RotateCcw size={28} />
+              <Rewind size={28} className="fill-current" />
             </button>
 
             {/* 再生/一時停止 */}
-            {/* ★変更: 再生ボタンの scale-110 を削除し、他とサイズを完全に統一 */}
             <button
               onClick={togglePlay}
               className="text-white hover:text-blue-400 flex items-center justify-center transition-colors"
@@ -201,7 +200,7 @@ function Player() {
               className="text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
               title="10秒進む"
             >
-              <RotateCw size={28} />
+              <FastForward size={28} className="fill-current" />
             </button>
 
             {/* 前の動画（ダミー） */}
