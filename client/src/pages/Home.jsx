@@ -10,6 +10,7 @@ function Home() {
   const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
 
   const [sortOrder, setSortOrder] = useState('desc');
+  const [isControlBarVisible, setIsControlBarVisible] = useState(true);
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
   };
@@ -30,6 +31,35 @@ function Home() {
     const timer = setTimeout(() => fetchVideos(), 500);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // スクロール方向を検知してコントロールバーの表示/非表示を切り替える処理
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    let ticking = false; // 処理の重複実行を防ぐためのフラグ
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          
+          if (currentScrollY < lastScrollY) {
+            // 上にスクロールした場合は表示
+            setIsControlBarVisible(true);
+          } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
+            // 下にスクロールした場合は非表示 (上部の遊びを考慮して50px以上のスクロールで判定)
+            setIsControlBarVisible(false);
+          }
+          
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
@@ -113,7 +143,11 @@ function Home() {
       </div>
       
       {/* ピル型のフローティングコントロールバー */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-in-out">
+      <div 
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-in-out ${
+          isControlBarVisible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"
+        }`}
+      >
         <div className="bg-zinc-800/90 backdrop-blur-md border border-zinc-700 shadow-2xl rounded-full px-1.5 py-1.5 flex flex-row items-center gap-1 overflow-x-auto max-w-[95vw] scrollbar-hide">
           
           {/* ソート順変更トグルボタン */}
