@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getImageUrl } from '../api';
 import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle } from 'lucide-react';
@@ -12,10 +12,16 @@ function Home() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [isControlBarVisible, setIsControlBarVisible] = useState(true);
 
+  // 無限スクロール用の表示件数管理
+  const [displayCount, setDisplayCount] = useState(100);
+  const observerTarget = useRef(null); // 監視対象要素の参照
+
   const navigate = useNavigate(); //画面遷移用のフック
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+    setDisplayCount(100); // ソート変更時は初期表示に戻す
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -35,29 +41,35 @@ function Home() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // IntersectionObserverで最下部到達を検知
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayCount((prev) => prev + 100);
+        }
+      },
+      { rootMargin: '400px' } // 下端に近づいたら早めに読み込む
+    );
+
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => observer.disconnect();
+  }, []);
+
   // ソート順(sortOrder)に応じて表示する動画リストを並び替える処理
   const sortedVideos = useMemo(() => {
     if (!videos) return [];
     
     const sorted = [...videos];
-    
-    // DateCreated(追加日時)を使ってソート
     sorted.sort((a, b) => {
-      // DateCreatedをDateオブジェクトに変換し、ミリ秒に直して比較
       const dateA = new Date(a.DateCreated || 0).getTime();
       const dateB = new Date(b.DateCreated || 0).getTime();
-
-      if (sortOrder === 'asc') {
-        return dateA - dateB; // 古い順 (数値が小さい順)
-      } else {
-        return dateB - dateA; // 新しい順 (数値が大きい順)
-      }
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
 
-    // フリーズ回避のため一時的に100件のみ抽出
-    return sorted.slice(0, 100);
-  
-  }, [videos, sortOrder]);
+    // 現在の表示件数分だけ切り出す
+    return sorted.slice(0, displayCount);
+  }, [videos, sortOrder, displayCount]);
 
   // ランダム再生ボタン押下時の処理
   const handleRandomPlay = () => {
@@ -179,6 +191,9 @@ function Home() {
             ))}
           </div>
         )}
+
+        {/* 無限スクロールの検知ポイント */}
+        <div ref={observerTarget} className="h-20" />
       </div>
       
       {/* ピル型のフローティングコントロールバー */}
