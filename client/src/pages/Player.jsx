@@ -182,7 +182,7 @@ function Player() {
               className="text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
               title="10秒戻る"
             >
-              <Rewind size={28} className="fill-current" />
+              <Rewind size={28} className="fill-current" strokeWidth={0} />
             </button>
 
             {/* 再生/一時停止 */}
@@ -191,7 +191,7 @@ function Player() {
               className="text-white hover:text-blue-400 flex items-center justify-center transition-colors"
               title={isPlaying ? "一時停止" : "再生"}
             >
-              {isPlaying ? <Pause size={28} className="fill-current" /> : <Play size={28} className="fill-current ml-1" />}
+              {isPlaying ? <Pause size={28} className="fill-current"  strokeWidth={0} /> : <Play size={28} className="fill-current ml-1" strokeWidth={0} />}
             </button>
 
             {/* 10秒進む */}
@@ -200,7 +200,7 @@ function Player() {
               className="text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
               title="10秒進む"
             >
-              <FastForward size={28} className="fill-current" />
+              <FastForward size={28} className="fill-current" strokeWidth={0} />
             </button>
 
             {/* 前の動画（ダミー） */}
@@ -209,7 +209,7 @@ function Player() {
               className="text-zinc-500 cursor-not-allowed flex items-center justify-center transition-colors"
               title="前の動画 (未実装)"
             >
-              <SkipBack size={28} className="fill-current" />
+              <SkipBack size={24} className="fill-current" />
             </button>
 
             {/* 次の動画（ダミー） */}
@@ -218,7 +218,7 @@ function Player() {
               className="text-zinc-500 cursor-not-allowed flex items-center justify-center transition-colors"
               title="次の動画 (未実装)"
             >
-              <SkipForward size={28} className="fill-current" />
+              <SkipForward size={24} className="fill-current" />
             </button>
           </div>
 
