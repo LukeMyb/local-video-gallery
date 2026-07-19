@@ -84,11 +84,11 @@ function Home() {
         </div>
       </div>
 
-      <div className="p-2 md:p-4 pt-0 flex-1 flex flex-col gap-4 max-w-7xl mx-auto w-full">
+      <div className="p-2 md:p-4 pt-0 flex-1 flex flex-col gap-4 w-full">
         {loading ? (
           <p className="text-zinc-500 text-center mt-8 text-sm">読み込み中...</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 landscape:grid-cols-6 gap-2 lg:gap-4">
             {videos.map((video) => (
               <Link 
                 to={`/player/${video.Id}`} 
