@@ -1,6 +1,17 @@
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getVideoStreamUrl } from '../api';
+import { 
+  ArrowLeft, 
+  Play, 
+  Pause, 
+  SkipBack, 
+  SkipForward, 
+  RotateCcw, 
+  RotateCw, 
+  Maximize, 
+  Minimize 
+} from 'lucide-react';
 
 function Player() {
   const { id } = useParams();
@@ -106,17 +117,18 @@ function Player() {
       ref={containerRef} 
       className="fixed inset-0 z-50 w-full h-100dvh bg-black flex flex-col justify-center"
     >
-      {/* 戻るボタン */}
+      {/* 上部コントロールバー（戻るボタンなど） */}
       <div 
-        className={`absolute top-0 left-0 right-0 p-4 bg-linear-to-b from-black/80 to-transparent transition-opacity duration-300 z-10 ${
+        className={`absolute top-0 left-0 right-0 p-4 bg-linear-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 z-10 flex items-center gap-4 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         <button 
           onClick={() => navigate('/')}
-          className="text-white bg-gray-800/80 px-4 py-2 rounded hover:bg-gray-700 transition"
+          className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800/80 rounded-full transition-colors flex items-center justify-center backdrop-blur-sm"
+          title="一覧へ戻る"
         >
-          ← 戻る
+          <ArrowLeft size={24} />
         </button>
       </div>
 
@@ -153,50 +165,77 @@ function Player() {
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:h-2 transition-all"
           />
           <span className="text-white text-sm font-mono">{formatTime(duration)}</span>
         </div>
 
         {/* ボタンエリア */}
-        <div className="flex items-center justify-between">
-          <div className="w-16"></div> {/* 中央揃えのための見えないスペーサー */}
-          
-          {/* 再生ボタンとスキップボタンをまとめるコンテナ */}
-          <div className="flex items-center gap-6">
+        <div className="flex items-center justify-between mt-2">
+
+          {/* 中央の再生コントロール群 */}
+          <div className="flex items-center gap-6 sm:gap-8">
+            
+            {/* 10秒戻る */}
             <button
               onClick={skipBackward}
-              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-10 h-10 flex items-center justify-center text-sm transition"
+              className="text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
+              title="10秒戻る"
             >
-              ⏪
+              <RotateCcw size={28} />
             </button>
 
+            {/* 再生/一時停止 */}
+            {/* ★変更: 再生ボタンの scale-110 を削除し、他とサイズを完全に統一 */}
             <button
               onClick={togglePlay}
-              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-12 h-12 flex items-center justify-center text-xl transition"
+              className="text-white hover:text-blue-400 flex items-center justify-center transition-colors"
+              title={isPlaying ? "一時停止" : "再生"}
             >
-              {isPlaying ? '⏸' : '▶️'}
+              {isPlaying ? <Pause size={28} className="fill-current" /> : <Play size={28} className="fill-current ml-1" />}
             </button>
 
+            {/* 10秒進む */}
             <button
               onClick={skipForward}
-              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-10 h-10 flex items-center justify-center text-sm transition"
+              className="text-zinc-300 hover:text-white flex items-center justify-center transition-colors"
+              title="10秒進む"
             >
-              ⏩
+              <RotateCw size={28} />
+            </button>
+
+            {/* 前の動画（ダミー） */}
+            <button
+              onClick={() => {}}
+              className="text-zinc-500 cursor-not-allowed flex items-center justify-center transition-colors"
+              title="前の動画 (未実装)"
+            >
+              <SkipBack size={28} className="fill-current" />
+            </button>
+
+            {/* 次の動画（ダミー） */}
+            <button
+              onClick={() => {}}
+              className="text-zinc-500 cursor-not-allowed flex items-center justify-center transition-colors"
+              title="次の動画 (未実装)"
+            >
+              <SkipForward size={28} className="fill-current" />
             </button>
           </div>
 
-          {/* モバイル以外(PC等)の場合のみフルスクリーンボタンを表示 */}
-          {!isMobile ? (
-            <button
-              onClick={toggleFullscreen}
-              className="text-white bg-gray-700 hover:bg-gray-600 rounded px-3 py-2 text-sm flex items-center justify-center transition"
-            >
-              {isFullscreen ? '縮小' : '全画面'}
-            </button>
-          ) : (
-            <div className="w-16"></div> /* レイアウト維持用のスペーサー */
-          )}
+          {/* 右側のコントロール群 */}
+          <div className="w-12 flex justify-end">
+            {!isMobile && (
+              <button
+                onClick={toggleFullscreen}
+                className="text-zinc-300 hover:text-white transition-colors"
+                title={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}
+              >
+                {isFullscreen ? <Minimize size={28} /> : <Maximize size={28} />}
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
