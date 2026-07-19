@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getVideos, getImageUrl } from '../api';
-import { Menu, Search as SearchIcon, Heart } from 'lucide-react';
+import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle } from 'lucide-react';
 
 function Home() {
   const [videos, setVideos] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
+
+  const [sortOrder, setSortOrder] = useState('desc');
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+  };
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -27,7 +32,7 @@ function Home() {
   }, [search]);
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-20">
+    <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
 
       {/* ヘッダーおよびステータス表示エリア */}
       <div className="p-3 portrait:pt-16 md:p-4 md:portrait:pt-4 md:sticky md:top-0 md:z-40 md:bg-zinc-900/90 md:backdrop-blur-md md:border-b md:border-zinc-800 flex flex-col gap-3">
@@ -106,6 +111,35 @@ function Home() {
           </div>
         )}
       </div>
+      
+      {/* ピル型のフローティングコントロールバー */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-in-out">
+        <div className="bg-zinc-800/90 backdrop-blur-md border border-zinc-700 shadow-2xl rounded-full px-1.5 py-1.5 flex flex-row items-center gap-1 overflow-x-auto max-w-[95vw] scrollbar-hide">
+          
+          {/* ソート順変更トグルボタン */}
+          <button
+            onClick={toggleSortOrder}
+            className="flex flex-row items-center gap-2 px-4 py-2 rounded-full hover:bg-zinc-700 transition-colors text-zinc-300"
+          >
+            {sortOrder === 'desc' ? <ArrowDownWideNarrow size={18} /> : <ArrowUpNarrowWide size={18} />}
+            <span className="text-sm font-medium whitespace-nowrap">
+              {sortOrder === 'desc' ? '新しい順' : '古い順'}
+            </span>
+          </button>
+
+          <div className="w-px h-5 bg-zinc-700 mx-1 shrink-0"></div>
+
+          {/* ランダム再生ボタン */}
+          <button
+            className="flex flex-row items-center gap-2 px-4 py-2 rounded-full hover:bg-zinc-700 transition-colors text-blue-400"
+          >
+            <Shuffle size={18} />
+            <span className="text-sm font-medium whitespace-nowrap">ランダム再生</span>
+          </button>
+          
+        </div>
+      </div>
+
     </div>
   );
 }
