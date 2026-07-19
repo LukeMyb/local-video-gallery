@@ -9,8 +9,9 @@ import {
   SkipForward, 
   Rewind,
   FastForward,
-  Maximize, 
-  Minimize 
+  Maximize,
+  Minimize,
+  Repeat
 } from 'lucide-react';
 
 function Player() {
@@ -25,6 +26,8 @@ function Player() {
   // 動画プレイヤーのDOM操作用参照と、状態管理
   const videoRef = useRef(null);
   const containerRef = useRef(null); // フルスクリーン化する親要素の参照
+
+  const [isLoop, setIsLoop] = useState(false);
 
   // モバイル(スマホ・タブレット)判定
   const [isMobile, setIsMobile] = useState(false);
@@ -69,6 +72,15 @@ function Player() {
   const handleNext = () => {
     if (nextVideo) {
       navigate(`/player/${nextVideo.Id}`, { state: { playlist } });
+    }
+  };
+
+  // 動画終了時の処理
+  const handleEnded = () => {
+    if (isLoop) {
+      videoRef.current.play(); // リピート時は最初から再生
+    } else {
+      handleNext(); // 次の動画へ
     }
   };
 
@@ -173,6 +185,8 @@ function Player() {
         ref={videoRef}
         autoPlay 
         playsInline
+        loop={isLoop}
+        onEnded={handleEnded}
         /* 常にコンテナいっぱいに広げ、アスペクト比を維持して黒帯を入れる(object-contain) */
         className="w-full h-full object-contain cursor-pointer bg-black"
         src={videoUrl}
@@ -261,7 +275,14 @@ function Player() {
           </div>
 
           {/* 右側のコントロール群 */}
-          <div className="w-12 flex justify-end">
+          <div className="flex items-center gap-4 justify-end">
+            <button
+              onClick={() => setIsLoop(!isLoop)}
+              className={`transition-colors ${isLoop ? 'text-blue-400' : 'text-zinc-300 hover:text-white'}`}
+              title={isLoop ? "リピート中" : "自動再生 (次の動画へ)"}
+            >
+              <Repeat size={28} />
+            </button>
             {!isMobile && (
               <button
                 onClick={toggleFullscreen}
@@ -272,7 +293,6 @@ function Player() {
               </button>
             )}
           </div>
-
         </div>
       </div>
     </div>
