@@ -1,13 +1,18 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getVideos, getImageUrl } from '../api';
-import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle } from 'lucide-react';
+import { getVideos, getLibraries, getImageUrl } from '../api';
+import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle, X, Folder } from 'lucide-react';
 
 function Home() {
   const [videos, setVideos] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isFavoriteFilter, setIsFavoriteFilter] = useState(false);
+
+  // ドロワーとライブラリ用のState
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [libraries, setLibraries] = useState([]);
+  const [selectedLibraryId, setSelectedLibraryId] = useState(null);
 
   const [sortOrder, setSortOrder] = useState('desc');
   const [isControlBarVisible, setIsControlBarVisible] = useState(true);
@@ -24,19 +29,32 @@ function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // お気に入りフィルターが切り替わった時も、表示件数をリセットして一番上に戻る
+  // フィルター(お気に入り/ライブラリ)が切り替わった時に上に戻す
   useEffect(() => {
     setDisplayCount(100);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [isFavoriteFilter]);
+  }, [isFavoriteFilter, selectedLibraryId]);
+
+  // 初回マウント時にライブラリ一覧を取得
+  useEffect(() => {
+    const fetchLibs = async () => {
+      try {
+        const data = await getLibraries();
+        setLibraries(data.Items || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchLibs();
+  }, []);
 
   useEffect(() => {
     const fetchVideos = async () => {
       setLoading(true);
       try {
-        const data = await getVideos(search);
+        // 第2引数に selectedLibraryId を渡す
+        const data = await getVideos(search, selectedLibraryId);
         setVideos(data.Items || []);
-        
       } catch (error) {
         console.error(error);
       }
@@ -45,7 +63,7 @@ function Home() {
 
     const timer = setTimeout(() => fetchVideos(), 500);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, selectedLibraryId]);
 
   // IntersectionObserverで最下部到達を検知
   useEffect(() => {
@@ -129,6 +147,62 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
+      {/* ★追加: ドロワーのオーバーレイ背景（クリックで閉じる） */}
+      {isDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-50 transition-opacity backdrop-blur-sm"
+          onClick={() => setIsDrawerOpen(false)}
+        />
+      )}
+
+      {/* ★追加: サイドドロワー本体 */}
+      <div 
+        className={`fixed inset-y-0 left-0 w-64 bg-zinc-900 border-r border-zinc-800 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+          isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+          <h2 className="text-lg font-bold text-zinc-100">ライブラリ</h2>
+          <button 
+            onClick={() => setIsDrawerOpen(false)}
+            className="p-2 text-zinc-400 hover:text-white rounded-md transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-2">
+          {/* 「すべての動画」選択ボタン */}
+          <button
+            onClick={() => {
+              setSelectedLibraryId(null);
+              setIsDrawerOpen(false);
+            }}
+            className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+              selectedLibraryId === null ? 'bg-zinc-800 text-blue-400 border-r-2 border-blue-400' : 'text-zinc-300 hover:bg-zinc-800/50'
+            }`}
+          >
+            <Folder size={20} className={selectedLibraryId === null ? 'fill-blue-900/50' : ''} />
+            <span className="font-medium">すべての動画</span>
+          </button>
+          
+          {/* 取得したライブラリ一覧の描画 */}
+          {libraries.map(lib => (
+            <button
+              key={lib.Id}
+              onClick={() => {
+                setSelectedLibraryId(lib.Id);
+                setIsDrawerOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+                selectedLibraryId === lib.Id ? 'bg-zinc-800 text-blue-400 border-r-2 border-blue-400' : 'text-zinc-300 hover:bg-zinc-800/50'
+              }`}
+            >
+              <Folder size={20} className={selectedLibraryId === lib.Id ? 'fill-blue-900/50' : ''} />
+              <span className="font-medium">{lib.Name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* ヘッダーおよびステータス表示エリア */}
       <div className="p-3 portrait:pt-16 md:p-4 md:portrait:pt-4 md:sticky md:top-0 md:z-40 md:bg-zinc-900/90 md:backdrop-blur-md md:border-b md:border-zinc-800 flex flex-col gap-3">
@@ -137,6 +211,7 @@ function Home() {
         <div className="flex items-center gap-2 md:gap-4">
           {/* ドロワーボタン */}
           <button 
+            onClick={() => setIsDrawerOpen(true)}
             className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
             title="メニューを開く"
           >

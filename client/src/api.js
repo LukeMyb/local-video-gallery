@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_JELLYFIN_URL;
 const API_KEY = import.meta.env.VITE_JELLYFIN_API_KEY;
 const USER_ID = import.meta.env.VITE_JELLYFIN_USER_ID;
 
-export const getVideos = async (searchTerm = '') => {
+export const getVideos = async (searchTerm = '', libraryId = null) => {
   const url = new URL(`${API_URL}/Items`);
   // APIキーをクエリパラメータとして付与
   url.searchParams.append('api_key', API_KEY);
@@ -22,6 +22,11 @@ export const getVideos = async (searchTerm = '') => {
     url.searchParams.append('searchTerm', searchTerm);
   }
 
+  // ライブラリ(ParentId)での絞り込み
+  if (libraryId) {
+    url.searchParams.append('ParentId', libraryId);
+  }
+
   const res = await fetch(url.toString());
   if (!res.ok) {
     throw new Error('動画の取得に失敗しました');
@@ -35,6 +40,24 @@ export const getVideos = async (searchTerm = '') => {
   }
 
   return data;
+};
+
+// ライブラリ(Views)一覧の取得
+export const getLibraries = async () => {
+  if (!USER_ID) {
+    throw new Error('ユーザーIDが設定されていません');
+  }
+
+  const url = new URL(`${API_URL}/Users/${USER_ID}/Views`);
+  url.searchParams.append('api_key', API_KEY);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error('ライブラリの取得に失敗しました');
+  }
+
+  const data = await res.json();
+  return data; // { Items: [...] } が返る
 };
 
 export const getImageUrl = (itemId) => {
