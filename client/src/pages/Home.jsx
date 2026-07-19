@@ -30,7 +30,7 @@ function Home() {
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-20">
 
       {/* ヘッダーおよびステータス表示エリア */}
-      <div className="p-3 md:p-4 md:sticky md:top-0 md:z-40 md:bg-zinc-900/90 md:backdrop-blur-md md:border-b md:border-zinc-800 flex flex-col gap-3">
+      <div className="p-3 portrait:pt-16 md:p-4 md:portrait:pt-4 md:sticky md:top-0 md:z-40 md:bg-zinc-900/90 md:backdrop-blur-md md:border-b md:border-zinc-800 flex flex-col gap-3">
         
         {/* 上段: 操作パネル */}
         <div className="flex items-center gap-2 md:gap-4">
@@ -84,7 +84,7 @@ function Home() {
         </div>
       </div>
 
-      <div className="p-2 md:p-4 pt-4 flex-1 flex flex-col gap-4 max-w-7xl mx-auto w-full">
+      <div className="p-2 md:p-4 pt-0 flex-1 flex flex-col gap-4 max-w-7xl mx-auto w-full">
         {loading ? (
           <p className="text-zinc-500 text-center mt-8 text-sm">読み込み中...</p>
         ) : (
