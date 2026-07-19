@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getVideoStreamUrl } from '../api';
 import { 
   ArrowLeft, 
@@ -16,6 +16,10 @@ import {
 function Player() {
   const { id } = useParams();
   const navigate = useNavigate();
+  // Home画面から渡されたstate(プレイリスト)を取得
+  const location = useLocation();
+  const playlist = location.state?.playlist || [];
+
   const videoUrl = getVideoStreamUrl(id);
 
   // 動画プレイヤーのDOM操作用参照と、状態管理
@@ -48,6 +52,25 @@ function Player() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+
+  // プレイリストから現在の動画の位置(インデックス)を特定し、前後の動画を取得
+  const currentIndex = playlist.findIndex((video) => video.Id === id);
+  const prevVideo = currentIndex > 0 ? playlist[currentIndex - 1] : null;
+  const nextVideo = currentIndex !== -1 && currentIndex < playlist.length - 1 ? playlist[currentIndex + 1] : null;
+
+  // 前の動画へ遷移する処理
+  const handlePrev = () => {
+    if (prevVideo) {
+      navigate(`/player/${prevVideo.Id}`, { state: { playlist } });
+    }
+  };
+
+  // 次の動画へ遷移する処理
+  const handleNext = () => {
+    if (nextVideo) {
+      navigate(`/player/${nextVideo.Id}`, { state: { playlist } });
+    }
+  };
 
 
   // フルスクリーン状態の変更を検知する副作用（ESCキーでの解除なども検知）
@@ -216,20 +239,22 @@ function Player() {
               <FastForward size={28} className="fill-current" strokeWidth={0} />
             </button>
 
-            {/* 前の動画（ダミー） */}
+            {/* 前の動画 */}
             <button
-              onClick={() => {}}
-              className="text-zinc-500 cursor-not-allowed flex items-center justify-center transition-colors"
-              title="前の動画 (未実装)"
+              onClick={handlePrev}
+              disabled={!prevVideo}
+              className={`${prevVideo ? 'text-zinc-300 hover:text-white' : 'text-zinc-600 cursor-not-allowed'} flex items-center justify-center transition-colors`}
+              title="前の動画"
             >
               <SkipBack size={24} className="fill-current" />
             </button>
 
-            {/* 次の動画（ダミー） */}
+            {/* 次の動画 */}
             <button
-              onClick={() => {}}
-              className="text-zinc-500 cursor-not-allowed flex items-center justify-center transition-colors"
-              title="次の動画 (未実装)"
+              onClick={handleNext}
+              disabled={!nextVideo}
+              className={`${nextVideo ? 'text-zinc-300 hover:text-white' : 'text-zinc-600 cursor-not-allowed'} flex items-center justify-center transition-colors`}
+              title="次の動画"
             >
               <SkipForward size={24} className="fill-current" />
             </button>
