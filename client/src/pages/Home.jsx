@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getImageUrl } from '../api';
 import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle } from 'lucide-react';
 
@@ -11,6 +11,9 @@ function Home() {
 
   const [sortOrder, setSortOrder] = useState('desc');
   const [isControlBarVisible, setIsControlBarVisible] = useState(true);
+
+  const navigate = useNavigate(); //画面遷移用のフック
+
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
   };
@@ -21,16 +24,51 @@ function Home() {
       try {
         const data = await getVideos(search);
         setVideos(data.Items || []);
+        
       } catch (error) {
         console.error(error);
       }
       setLoading(false);
     };
 
-    // 検索入力が少し落ち着いてからAPIを叩くための遅延処理
     const timer = setTimeout(() => fetchVideos(), 500);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // ソート順(sortOrder)に応じて表示する動画リストを並び替える処理
+  const sortedVideos = useMemo(() => {
+    if (!videos) return [];
+    
+    const sorted = [...videos];
+    
+    // DateCreated(追加日時)を使ってソート
+    sorted.sort((a, b) => {
+      // DateCreatedをDateオブジェクトに変換し、ミリ秒に直して比較
+      const dateA = new Date(a.DateCreated || 0).getTime();
+      const dateB = new Date(b.DateCreated || 0).getTime();
+
+      if (sortOrder === 'asc') {
+        return dateA - dateB; // 古い順 (数値が小さい順)
+      } else {
+        return dateB - dateA; // 新しい順 (数値が大きい順)
+      }
+    });
+
+    // フリーズ回避のため一時的に100件のみ抽出
+    return sorted.slice(0, 100);
+  
+  }, [videos, sortOrder]);
+
+  // ランダム再生ボタン押下時の処理
+  const handleRandomPlay = () => {
+    if (!sortedVideos || sortedVideos.length === 0) return;
+    
+    const randomIndex = Math.floor(Math.random() * sortedVideos.length);
+    const randomVideo = sortedVideos[randomIndex];
+    
+    // プレイヤー画面へ遷移。同時に現在のリスト情報(sortedVideos)を渡す
+    navigate(`/player/${randomVideo.Id}`, { state: { playlist: sortedVideos } });
+  };
 
   // スクロール方向を検知してコントロールバーの表示/非表示を切り替える処理
   useEffect(() => {
@@ -124,9 +162,10 @@ function Home() {
           <p className="text-zinc-500 text-center mt-8 text-sm">読み込み中...</p>
         ) : (
           <div className="grid grid-cols-3 md:grid-cols-6 landscape:grid-cols-6 gap-2 lg:gap-4">
-            {videos.map((video) => (
+            {sortedVideos.map((video) => (
               <Link 
-                to={`/player/${video.Id}`} 
+                to={`/player/${video.Id}`}
+                state={{ playlist: sortedVideos }} 
                 key={video.Id} 
                 className="relative rounded-md overflow-hidden bg-[#27272a] border border-zinc-800 hover:bg-zinc-700 transition-colors block group"
               >
@@ -165,6 +204,7 @@ function Home() {
 
           {/* ランダム再生ボタン */}
           <button
+            onClick={handleRandomPlay}
             className="flex flex-row items-center gap-2 px-4 py-2 rounded-full hover:bg-zinc-700 transition-colors text-blue-400"
           >
             <Shuffle size={18} />

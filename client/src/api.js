@@ -9,6 +9,8 @@ export const getVideos = async (searchTerm = '') => {
   url.searchParams.append('IncludeItemTypes', 'Movie,Episode,Video');
   // フォルダ階層を無視してすべてのアイテムをフラットに取得する
   url.searchParams.append('Recursive', 'true');
+  // ソート用にDateCreated(追加日時)を取得する
+  url.searchParams.append('Fields', 'DateCreated');
   
   if (searchTerm) {
     url.searchParams.append('searchTerm', searchTerm);
