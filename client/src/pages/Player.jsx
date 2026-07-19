@@ -70,6 +70,22 @@ function Player() {
     }
   };
 
+  // 10秒巻き戻し / 先送り処理
+  const skipBackward = () => {
+    if (videoRef.current) {
+      const newTime = Math.max(0, videoRef.current.currentTime - 10);
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+  const skipForward = () => {
+    if (videoRef.current) {
+      const newTime = Math.min(duration, videoRef.current.currentTime + 10);
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
   // シークバー操作時の処理
   const handleSeek = (e) => {
     const time = Number(e.target.value);
@@ -144,14 +160,31 @@ function Player() {
 
         {/* ボタンエリア */}
         <div className="flex items-center justify-between">
-          <div className="w-12"></div> {/* 中央揃えのための見えないスペーサー */}
+          <div className="w-16"></div> {/* 中央揃えのための見えないスペーサー */}
           
-          <button
-            onClick={togglePlay}
-            className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-12 h-12 flex items-center justify-center text-xl transition"
-          >
-            {isPlaying ? '⏸' : '▶️'}
-          </button>
+          {/* 再生ボタンとスキップボタンをまとめるコンテナ */}
+          <div className="flex items-center gap-6">
+            <button
+              onClick={skipBackward}
+              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-10 h-10 flex items-center justify-center text-sm transition"
+            >
+              ⏪
+            </button>
+
+            <button
+              onClick={togglePlay}
+              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-12 h-12 flex items-center justify-center text-xl transition"
+            >
+              {isPlaying ? '⏸' : '▶️'}
+            </button>
+
+            <button
+              onClick={skipForward}
+              className="text-white bg-gray-700 hover:bg-gray-600 rounded-full w-10 h-10 flex items-center justify-center text-sm transition"
+            >
+              ⏩
+            </button>
+          </div>
 
           {/* モバイル以外(PC等)の場合のみフルスクリーンボタンを表示 */}
           {!isMobile ? (
