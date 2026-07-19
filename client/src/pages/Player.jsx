@@ -22,10 +22,23 @@ function Player() {
   const videoRef = useRef(null);
   const containerRef = useRef(null); // フルスクリーン化する親要素の参照
 
-  /* モバイル(スマホ・タブレット)判定 */
+  // モバイル(スマホ・タブレット)判定
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
+
+  // プレイヤー画面表示中のbody背景色コントロール
+  useEffect(() => {
+    // 画面表示時: ベース背景を黒にする
+    document.body.classList.remove('bg-zinc-900');
+    document.body.classList.add('bg-black');
+
+    // 画面離脱時(一覧へ戻る時など): ベース背景を深いグレーに戻す
+    return () => {
+      document.body.classList.remove('bg-black');
+      document.body.classList.add('bg-zinc-900');
+    };
   }, []);
 
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
