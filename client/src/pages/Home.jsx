@@ -24,6 +24,12 @@ function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // お気に入りフィルターが切り替わった時も、表示件数をリセットして一番上に戻る
+  useEffect(() => {
+    setDisplayCount(100);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [isFavoriteFilter]);
+
   useEffect(() => {
     const fetchVideos = async () => {
       setLoading(true);
@@ -57,29 +63,39 @@ function Home() {
   }, []);
 
   // ソート順(sortOrder)に応じて表示する動画リストを並び替える処理
-  const sortedVideos = useMemo(() => {
-    if (!videos) return [];
+  const { allFiltered, displayed } = useMemo(() => {
+    if (!videos) return { allFiltered: [], displayed: [] };
     
-    const sorted = [...videos];
-    sorted.sort((a, b) => {
+    // お気に入りフィルターの適用
+    let filtered = [...videos];
+    if (isFavoriteFilter) {
+      filtered = filtered.filter(video => video.UserData?.IsFavorite);
+    }
+
+    // ソートの適用
+    filtered.sort((a, b) => {
       const dateA = new Date(a.DateCreated || 0).getTime();
       const dateB = new Date(b.DateCreated || 0).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
 
-    // 現在の表示件数分だけ切り出す
-    return sorted.slice(0, displayCount);
-  }, [videos, sortOrder, displayCount]);
+    // 表示件数分だけ切り出す
+    return {
+      allFiltered: filtered,
+      displayed: filtered.slice(0, displayCount)
+    };
+  }, [videos, sortOrder, isFavoriteFilter, displayCount]);
 
   // ランダム再生ボタン押下時の処理
   const handleRandomPlay = () => {
-    if (!sortedVideos || sortedVideos.length === 0) return;
+    if (!allFiltered || allFiltered.length === 0) return;
     
-    const randomIndex = Math.floor(Math.random() * sortedVideos.length);
-    const randomVideo = sortedVideos[randomIndex];
+    // 画面にまだ描画されていないものも含め、フィルター条件に合致する「すべての動画」からランダムに選ぶ
+    const randomIndex = Math.floor(Math.random() * allFiltered.length);
+    const randomVideo = allFiltered[randomIndex];
     
-    // プレイヤー画面へ遷移。同時に現在のリスト情報(sortedVideos)を渡す
-    navigate(`/player/${randomVideo.Id}`, { state: { playlist: sortedVideos } });
+    // プレイヤー画面へ遷移。同時に現在のリスト情報(allFiltered)を渡す
+    navigate(`/player/${randomVideo.Id}`, { state: { playlist: allFiltered } });
   };
 
   // スクロール方向を検知してコントロールバーの表示/非表示を切り替える処理
@@ -164,7 +180,7 @@ function Home() {
         <div className="px-2 flex items-center justify-between text-sm">
           <p className="text-zinc-400">
             {search || isFavoriteFilter ? '絞り込み結果' : 'すべての動画'}
-            <span className="ml-2 text-zinc-200 font-medium">{videos.length}件</span>
+            <span className="ml-2 text-zinc-200 font-medium">{allFiltered.length}件</span>
           </p>
         </div>
       </div>
@@ -174,10 +190,10 @@ function Home() {
           <p className="text-zinc-500 text-center mt-8 text-sm">読み込み中...</p>
         ) : (
           <div className="grid grid-cols-3 md:grid-cols-6 landscape:grid-cols-6 gap-2 lg:gap-4">
-            {sortedVideos.map((video) => (
+            {displayed.map((video) => (
               <Link 
                 to={`/player/${video.Id}`}
-                state={{ playlist: sortedVideos }} 
+                state={{ playlist: allFiltered }}
                 key={video.Id} 
                 className="relative rounded-md overflow-hidden bg-[#27272a] border border-zinc-800 hover:bg-zinc-700 transition-colors block group"
               >
