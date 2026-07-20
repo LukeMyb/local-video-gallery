@@ -124,10 +124,10 @@ function Home() {
         // APIから取得したタグ情報の配列。ない場合は空配列として扱う
         const tags = video.Tags || [];
         
-        // 入力されたすべてのキーワードが、いずれかのタグに部分一致するか判定
+        // 入力されたすべてのキーワードが、いずれかのタグに完全一致するか判定
         return keywords.every(keyword => {
           const normalizedKeyword = keyword.replace(/_/g, ' ');
-          return tags.some(tag => tag.toLowerCase().includes(normalizedKeyword));
+          return tags.some(tag => tag.toLowerCase() === normalizedKeyword);
         });
       });
     }
