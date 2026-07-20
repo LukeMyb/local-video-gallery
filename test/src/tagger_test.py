@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import gc
+import shutil
 from huggingface_hub import hf_hub_download
 import onnxruntime as ort
 import xml.etree.ElementTree as ET # NFO(XML)出力用
@@ -137,6 +138,10 @@ class VideoTaggerTest:
                 tag_elem.text = tag
                 added_count += 1
 
+        # XMLのインデントを整えて綺麗に出力する
+        if hasattr(ET, "indent"):
+            ET.indent(tree, space="  ", level=0)
+
         # 保存
         tree.write(target_nfo_path, encoding="utf-8", xml_declaration=True)
         print(f"NFOファイルに {added_count} 個の新しいタグを追加保存しました。")
@@ -218,6 +223,7 @@ class VideoTaggerTest:
             print(f"- {tag} (検出: {tag_counts[tag]}/{num_frames}フレーム)")
         
         self.save_tags_txt(output_dir, found_tags)
+        self.generate_nfo(video_path, output_dir, found_tags)
 
 if __name__ == "__main__":
     tagger = VideoTaggerTest()
