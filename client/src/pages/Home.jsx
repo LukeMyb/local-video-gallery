@@ -116,19 +116,19 @@ function Home() {
     }
 
     // タグ検索フィルターのロジック
-    // 入力欄(search)に文字がある場合、タグで絞り込む
     if (search.trim()) {
-      // スペース区切りで複数のキーワードを配列化 (AND検索に対応)
-      const keywords = search.toLowerCase().split(/\s+/);
+      // filter(Boolean) で連続したスペースによる空文字を除外
+      const keywords = search.toLowerCase().split(/\s+/).filter(Boolean);
       
       filtered = filtered.filter(video => {
         // APIから取得したタグ情報の配列。ない場合は空配列として扱う
         const tags = video.Tags || [];
         
         // 入力されたすべてのキーワードが、いずれかのタグに部分一致するか判定
-        return keywords.every(keyword => 
-          tags.some(tag => tag.toLowerCase().includes(keyword))
-        );
+        return keywords.every(keyword => {
+          const normalizedKeyword = keyword.replace(/_/g, ' ');
+          return tags.some(tag => tag.toLowerCase().includes(normalizedKeyword));
+        });
       });
     }
 
