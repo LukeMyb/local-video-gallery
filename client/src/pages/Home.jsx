@@ -79,8 +79,7 @@ function Home() {
     const fetchVideos = async () => {
       setLoading(true);
       try {
-        // 第2引数に selectedLibraryId を渡す
-        const data = await getVideos(search, selectedLibraryId);
+        const data = await getVideos(selectedLibraryId);
         setVideos(data.Items || []);
       } catch (error) {
         console.error(error);
@@ -88,9 +87,8 @@ function Home() {
       setLoading(false);
     };
 
-    const timer = setTimeout(() => fetchVideos(), 500);
-    return () => clearTimeout(timer);
-  }, [search, selectedLibraryId]);
+    fetchVideos();
+  }, [selectedLibraryId]);
 
   // IntersectionObserverで最下部到達を検知
   useEffect(() => {
@@ -111,10 +109,27 @@ function Home() {
   const { allFiltered, displayed } = useMemo(() => {
     if (!videos) return { allFiltered: [], displayed: [] };
     
-    // お気に入りフィルターの適用
     let filtered = [...videos];
+    
     if (isFavoriteFilter) {
       filtered = filtered.filter(video => video.UserData?.IsFavorite);
+    }
+
+    // タグ検索フィルターのロジック
+    // 入力欄(search)に文字がある場合、タグで絞り込む
+    if (search.trim()) {
+      // スペース区切りで複数のキーワードを配列化 (AND検索に対応)
+      const keywords = search.toLowerCase().split(/\s+/);
+      
+      filtered = filtered.filter(video => {
+        // APIから取得したタグ情報の配列。ない場合は空配列として扱う
+        const tags = video.Tags || [];
+        
+        // 入力されたすべてのキーワードが、いずれかのタグに部分一致するか判定
+        return keywords.every(keyword => 
+          tags.some(tag => tag.toLowerCase().includes(keyword))
+        );
+      });
     }
 
     // ソートの適用
@@ -129,7 +144,7 @@ function Home() {
       allFiltered: filtered,
       displayed: filtered.slice(0, displayCount)
     };
-  }, [videos, sortOrder, isFavoriteFilter, displayCount]);
+  }, [videos, sortOrder, isFavoriteFilter, displayCount, search]);
 
   // ランダム再生ボタン押下時の処理
   const handleRandomPlay = () => {

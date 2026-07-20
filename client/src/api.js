@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_JELLYFIN_URL;
 const API_KEY = import.meta.env.VITE_JELLYFIN_API_KEY;
 const USER_ID = import.meta.env.VITE_JELLYFIN_USER_ID;
 
-export const getVideos = async (searchTerm = '', libraryId = null) => {
+export const getVideos = async (libraryId = null) => {
   const url = new URL(`${API_URL}/Items`);
   // APIキーをクエリパラメータとして付与
   url.searchParams.append('api_key', API_KEY);
@@ -11,15 +11,11 @@ export const getVideos = async (searchTerm = '', libraryId = null) => {
   // フォルダ階層を無視してすべてのアイテムをフラットに取得する
   url.searchParams.append('Recursive', 'true');
   // ソート用にDateCreated(追加日時)を取得する
-  url.searchParams.append('Fields', 'DateCreated');
+  url.searchParams.append('Fields', 'DateCreated,Tags');
 
   // ユーザーIDをパラメータに付与して、お気に入りデータ等を含める
   if (USER_ID) {
     url.searchParams.append('userId', USER_ID);
-  }
-  
-  if (searchTerm) {
-    url.searchParams.append('searchTerm', searchTerm);
   }
 
   // ライブラリ(ParentId)での絞り込み
