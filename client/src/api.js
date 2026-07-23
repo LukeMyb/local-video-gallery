@@ -65,3 +65,29 @@ export const getVideoStreamUrl = (itemId) => {
   // static=true を付与してDirect Play（静的ファイル配信）を強制する
   return `${API_URL}/Videos/${itemId}/stream?api_key=${API_KEY}&static=true`;
 };
+
+// お気に入りのトグル処理
+export const toggleFavorite = async (videoId, currentIsFavorite) => {
+  if (!USER_ID) {
+    throw new Error('ユーザーIDが設定されていません');
+  }
+
+  const method = currentIsFavorite ? 'DELETE' : 'POST';
+  
+  // 既存の API_URL と USER_ID を使用してURLを構築
+  const url = new URL(`${API_URL}/Users/${USER_ID}/FavoriteItems/${videoId}`);
+  
+  // 既存の関数と同様にクエリパラメータで api_key を渡す
+  url.searchParams.append('api_key', API_KEY);
+
+  const response = await fetch(url.toString(), {
+    method: method,
+  });
+
+  if (!response.ok) {
+    throw new Error('お気に入りの状態変更に失敗しました');
+  }
+
+  const data = await response.json();
+  return data.IsFavorite; 
+};

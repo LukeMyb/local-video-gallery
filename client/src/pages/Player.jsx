@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getVideoStreamUrl } from '../api';
+import { getVideoStreamUrl, toggleFavorite } from '../api';
 import { 
   ArrowLeft, 
   Play, 
@@ -11,7 +11,8 @@ import {
   FastForward,
   Maximize,
   Minimize,
-  Repeat
+  Repeat,
+  Heart
 } from 'lucide-react';
 
 function Player() {
@@ -104,8 +105,35 @@ function Player() {
 
   // プレイリストから現在の動画の位置(インデックス)を特定し、前後の動画を取得
   const currentIndex = playlist.findIndex((video) => video.Id === id);
+  const currentVideo = currentIndex !== -1 ? playlist[currentIndex] : null;
   const prevVideo = currentIndex > 0 ? playlist[currentIndex - 1] : null;
   const nextVideo = currentIndex !== -1 && currentIndex < playlist.length - 1 ? playlist[currentIndex + 1] : null;
+
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // 動画が切り替わった時（idが変わった時）に、お気に入り状態を初期化する
+  useEffect(() => {
+    if (currentVideo && currentVideo.UserData) {
+      setIsFavorite(currentVideo.UserData.IsFavorite || false);
+    }
+  }, [id, currentVideo]);
+
+  // お気に入りボタンを押した時の処理
+  const handleToggleFavorite = async () => {
+    try {
+      // APIを呼び出して状態を反転
+      const newFavoriteStatus = await toggleFavorite(id, isFavorite);
+      setIsFavorite(newFavoriteStatus);
+      
+      // 一覧画面に戻った時にも反映されるよう、渡されたプレイリスト内のデータも更新しておく
+      if (currentVideo && currentVideo.UserData) {
+        currentVideo.UserData.IsFavorite = newFavoriteStatus;
+      }
+    } catch (error) {
+      console.error(error);
+      alert('お気に入りの更新に失敗しました');
+    }
+  };
 
   // 前の動画へ遷移する処理
   const handlePrev = () => {
@@ -340,6 +368,16 @@ function Player() {
 
           {/* 右側のコントロール群 */}
           <div className="flex items-center gap-4 justify-end">
+            {/* お気に入りボタン */}
+            <button
+              onClick={handleToggleFavorite}
+              className={`transition-colors flex items-center justify-center mr-2 sm:mr-4 ${isFavorite ? 'text-white' : 'text-zinc-300 hover:text-white'}`}
+              title={isFavorite ? "お気に入り解除" : "お気に入り登録"}
+            >
+              {/* お気に入り時は中身を塗りつぶす(fill-current) */}
+              <Heart size={28} className={isFavorite ? 'fill-current' : ''} />
+            </button>
+
             <button
               onClick={() => setIsLoop(!isLoop)}
               className={`transition-colors ${isLoop ? 'text-blue-400' : 'text-zinc-300 hover:text-white'}`}
