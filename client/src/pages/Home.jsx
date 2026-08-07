@@ -33,7 +33,7 @@ function useLocalStorage(key, initialValue) {
 
 function Home() {
   const [videos, setVideos] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useLocalStorage('jellyfin_searchQuery', '');
   const [loading, setLoading] = useState(true);
 
   const [isFavoriteFilter, setIsFavoriteFilter] = useLocalStorage('jellyfin_isFavorite', false);
