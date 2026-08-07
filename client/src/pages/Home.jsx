@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getVideos, getLibraries, getImageUrl } from '../api';
 import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle, X, Folder } from 'lucide-react';
 
@@ -44,21 +44,38 @@ function Home() {
   const [libraries, setLibraries] = useState([]);
   const [isControlBarVisible, setIsControlBarVisible] = useState(true);
 
-  // 無限スクロール用の表示件数管理
-  const [displayCount, setDisplayCount] = useState(100);
+  // 無限スクロール用の表示件数をsessionStorageから復元（デフォルト100）
+  const [displayCount, setDisplayCount] = useState(() => {
+    const saved = sessionStorage.getItem('jellyfin_displayCount');
+    return saved ? parseInt(saved, 10) : 100;
+  });
   const observerTarget = useRef(null); // 監視対象要素の参照
 
-  const navigate = useNavigate(); //画面遷移用のフック
+  const navigate = useNavigate(); // 画面遷移用のフック
+  const location = useLocation(); // 現在のパスを監視
+
+  // フィルターuseEffectの初回実行ブロック用フラグ
+  const isFirstMountForFilter = useRef(true);
+  
+  // 復元すべきスクロール位置の保持用
+  const savedScrollPosition = useRef(0);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
     setDisplayCount(100); // ソート変更時は初期表示に戻す
+    sessionStorage.setItem('jellyfin_displayCount', '100');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // フィルター(お気に入り/ライブラリ)が切り替わった時に上に戻す
   useEffect(() => {
+    // 初回マウント時は実行しないように制御
+    if (isFirstMountForFilter.current) {
+      isFirstMountForFilter.current = false;
+      return;
+    }
     setDisplayCount(100);
+    sessionStorage.setItem('jellyfin_displayCount', '100');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [isFavoriteFilter, selectedLibraryId]);
 
@@ -90,12 +107,29 @@ function Home() {
     fetchVideos();
   }, [selectedLibraryId]);
 
+  // データ取得完了後（loading === false）にスクロール位置を復元する
+  useEffect(() => {
+    if (!loading) {
+      const saved = sessionStorage.getItem('jellyfin_scrollPosition');
+      if (saved) {
+        // DOMの描画が完了するのを少し待ってからスクロールを復元
+        setTimeout(() => {
+          window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
+        }, 100); // 100ms程度の遅延で描画完了を待つ（必要に応じて調整）
+      }
+    }
+  }, [loading]);
+
   // IntersectionObserverで最下部到達を検知
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setDisplayCount((prev) => prev + 100);
+          setDisplayCount((prev) => {
+            const newCount = prev + 100;
+            sessionStorage.setItem('jellyfin_displayCount', newCount.toString()); // ★追加: 表示件数増加時にも保存
+            return newCount;
+          });
         }
       },
       { rootMargin: '400px' } // 下端に近づいたら早めに読み込む
@@ -313,6 +347,11 @@ function Home() {
                 state={{ playlist: allFiltered }}
                 key={video.Id} 
                 className="relative rounded-md overflow-hidden bg-[#27272a] border border-zinc-800 hover:bg-zinc-700 transition-colors block group"
+                onClick={() => {
+                  const currentScrollY = window.scrollY;
+                  sessionStorage.setItem('jellyfin_scrollPosition', currentScrollY.toString());
+                  sessionStorage.setItem('jellyfin_displayCount', displayCount.toString());
+                }}
               >
                 <img
                   src={getImageUrl(video.Id)}
