@@ -324,7 +324,7 @@ function Home() {
                 {/* サムネイル上のタグ表示エリア */}
                 {video.Tags && video.Tags.length > 0 && (
                   <div 
-                    className="absolute bottom-0 left-0 right-0 p-1.5 bg-linear-to-t from-black/95 via-black/70 to-transparent flex flex-wrap gap-1 max-h-[40%] overflow-y-auto"
+                    className="absolute bottom-0 left-0 right-0 p-1.5 bg-linear-to-t from-black/95 via-black/70 to-transparent flex flex-wrap gap-1 max-h-[20%] overflow-y-auto"
                     style={{ scrollbarWidth: 'none' }} /* スクロールバーを非表示にする */
                   >
                     {video.Tags.map(tag => (
