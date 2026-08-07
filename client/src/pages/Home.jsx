@@ -33,7 +33,11 @@ function useLocalStorage(key, initialValue) {
 
 function Home() {
   const [videos, setVideos] = useState([]);
-  const [search, setSearch] = useLocalStorage('jellyfin_searchQuery', '');
+  
+  const [searchQuery, setSearchQuery] = useLocalStorage('jellyfin_searchQuery', '');
+  // DOM（入力欄）に直接アクセスするためのRefを作成
+  const inputRef = useRef(null);
+
   const [loading, setLoading] = useState(true);
 
   const [isFavoriteFilter, setIsFavoriteFilter] = useLocalStorage('jellyfin_isFavorite', false);
@@ -56,9 +60,27 @@ function Home() {
 
   // フィルターuseEffectの初回実行ブロック用フラグ
   const isFirstMountForFilter = useRef(true);
-  
   // 復元すべきスクロール位置の保持用
   const savedScrollPosition = useRef(0);
+
+  // 検索を実行する関数
+  const handleSearchExecute = () => {
+    if (inputRef.current) {
+      setSearchQuery(inputRef.current.value);
+    }
+    setDisplayCount(100); // 検索実行時に表示件数をリセット
+    sessionStorage.setItem('jellyfin_displayCount', '100');
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // 検索実行時にトップへスクロール
+  };
+
+  // Enterキーでの検索実行を検知する関数
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      // IME変換中のEnterを無視するため、e.nativeEvent.isComposing を確認
+      if (e.nativeEvent.isComposing) return;
+      handleSearchExecute();
+    }
+  };
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
@@ -150,15 +172,11 @@ function Home() {
     }
 
     // タグ検索フィルターのロジック
-    if (search.trim()) {
-      // filter(Boolean) で連続したスペースによる空文字を除外
-      const keywords = search.toLowerCase().split(/\s+/).filter(Boolean);
+    if (searchQuery.trim()) {
+      const keywords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
       
       filtered = filtered.filter(video => {
-        // APIから取得したタグ情報の配列。ない場合は空配列として扱う
         const tags = video.Tags || [];
-        
-        // 入力されたすべてのキーワードが、いずれかのタグに完全一致するか判定
         return keywords.every(keyword => {
           const normalizedKeyword = keyword.replace(/_/g, ' ');
           return tags.some(tag => tag.toLowerCase() === normalizedKeyword);
@@ -178,7 +196,7 @@ function Home() {
       allFiltered: filtered,
       displayed: filtered.slice(0, displayCount)
     };
-  }, [videos, sortOrder, isFavoriteFilter, displayCount, search]);
+  }, [videos, sortOrder, isFavoriteFilter, displayCount, searchQuery]);
 
   // ランダム再生ボタン押下時の処理
   const handleRandomPlay = () => {
@@ -300,13 +318,15 @@ function Home() {
               type="text"
               placeholder="タグで動画を検索..."
               className="w-full p-2.5 bg-[#27272a] rounded-md text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              ref={inputRef} 
+              defaultValue={searchQuery}
+              onKeyDown={handleKeyDown}
             />
           </div>
 
           {/* 虫眼鏡ボタン */}
           <button 
+            onClick={handleSearchExecute}
             className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
             title="検索する"
           >
@@ -330,7 +350,7 @@ function Home() {
         {/* 下段: ステータスメッセージ */}
         <div className="px-2 flex items-center justify-between text-sm">
           <p className="text-zinc-400">
-            {search || isFavoriteFilter ? '絞り込み結果' : 'すべての動画'}
+            {searchQuery || isFavoriteFilter ? '絞り込み結果' : 'すべての動画'}
             <span className="ml-2 text-zinc-200 font-medium">{allFiltered.length}件</span>
           </p>
         </div>
