@@ -201,13 +201,23 @@ function Home() {
   // ランダム再生ボタン押下時の処理
   const handleRandomPlay = () => {
     if (!allFiltered || allFiltered.length === 0) return;
+
+    // プレイリスト全体をシャッフルするための関数（Fisher-Yatesアルゴリズム）
+    const shuffleArray = (array) => {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    };
     
     // 画面にまだ描画されていないものも含め、フィルター条件に合致する「すべての動画」からランダムに選ぶ
-    const randomIndex = Math.floor(Math.random() * allFiltered.length);
-    const randomVideo = allFiltered[randomIndex];
+    const shuffledPlaylist = shuffleArray(allFiltered);
+    const randomVideo = shuffledPlaylist[0];
     
-    // プレイヤー画面へ遷移。同時に現在のリスト情報(allFiltered)を渡す
-    navigate(`/player/${randomVideo.Id}`, { state: { playlist: allFiltered } });
+    // プレイヤー画面へ遷移。同時に「シャッフル済みのリスト」を渡す
+    navigate(`/player/${randomVideo.Id}`, { state: { playlist: shuffledPlaylist } });
   };
 
   // スクロール方向を検知してコントロールバーの表示/非表示を切り替える処理
