@@ -38,6 +38,8 @@ function Home() {
   // DOM（入力欄）に直接アクセスするためのRefを作成
   const inputRef = useRef(null);
 
+  const [showClearButton, setShowClearButton] = useState(!!searchQuery);
+
   const [loading, setLoading] = useState(true);
 
   const [isFavoriteFilter, setIsFavoriteFilter] = useLocalStorage('jellyfin_isFavorite', false);
@@ -71,6 +73,25 @@ function Home() {
     setDisplayCount(100); // 検索実行時に表示件数をリセット
     sessionStorage.setItem('jellyfin_displayCount', '100');
     window.scrollTo({ top: 0, behavior: 'smooth' }); // 検索実行時にトップへスクロール
+  };
+
+  // 検索窓をクリアする関数
+  const handleClearSearch = () => {
+    if (inputRef.current) {
+      inputRef.current.value = ''; // 入力欄を空にする
+      inputRef.current.focus(); // クリア後にフォーカスを戻す（UX向上）
+    }
+    setShowClearButton(false); // ボタンを隠す
+    setSearchQuery(''); // 検索条件をクリアしてリストをリセット
+    setDisplayCount(100);
+    sessionStorage.setItem('jellyfin_displayCount', '100');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 入力値の変更を検知してクリアボタンの表示状態を切り替える関数
+  const handleInputChange = (e) => {
+    // 文字が1文字でもあれば true、空なら false
+    setShowClearButton(e.target.value.length > 0);
   };
 
   // Enterキーでの検索実行を検知する関数
@@ -327,11 +348,22 @@ function Home() {
             <input
               type="text"
               placeholder="タグで動画を検索..."
-              className="w-full p-2.5 bg-[#27272a] rounded-md text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              ref={inputRef} 
+              className="w-full py-2.5 pl-3 pr-10 bg-[#27272a] rounded-md text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              ref={inputRef}
               defaultValue={searchQuery}
               onKeyDown={handleKeyDown}
+              onChange={handleInputChange}
             />
+            {/* Xボタンの条件付きレンダリング */}
+            {showClearButton && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md transition-colors"
+                title="検索をクリア"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           {/* 虫眼鏡ボタン */}
