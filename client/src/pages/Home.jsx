@@ -95,7 +95,7 @@ function Home() {
     if (!currentKeyword) return [];
 
     return allUniqueTags.filter(tag => 
-      tag.toLowerCase().includes(currentKeyword)
+      tag.toLowerCase().startsWith(currentKeyword)
     ).slice(0, 10); // 表示は最大10件までに制限
   }, [inputText, allUniqueTags]);
 
