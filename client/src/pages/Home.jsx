@@ -40,6 +40,11 @@ function Home() {
 
   const [showClearButton, setShowClearButton] = useState(!!searchQuery);
 
+  // サジェスト表示用のState群
+  const [inputText, setInputText] = useState(searchQuery); // 入力中の文字列を保持（サジェストのトリガー用）
+  const [showSuggest, setShowSuggest] = useState(false); // サジェスト枠の表示/非表示フラグ
+  const suggestRef = useRef(null); // サジェスト領域外クリック判定用のRef
+
   const [loading, setLoading] = useState(true);
 
   const [isFavoriteFilter, setIsFavoriteFilter] = useLocalStorage('jellyfin_isFavorite', false);
@@ -65,11 +70,41 @@ function Home() {
   // 復元すべきスクロール位置の保持用
   const savedScrollPosition = useRef(0);
 
+  // サジェスト用タグリスト生成
+  const allUniqueTags = useMemo(() => {
+    if (!videos || videos.length === 0) return [];
+    const tagSet = new Set();
+    videos.forEach(video => {
+      if (video.Tags && video.Tags.length > 0) {
+        // セットに追加する前に、スペースをアンダースコアに変換する
+        video.Tags.forEach(tag => tagSet.add(tag.replace(/ /g, '_')));
+      }
+    });
+    // アルファベット順などにソートしておくと見やすい
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+  }, [videos]);
+
+  // 入力文字に基づくサジェスト候補の絞り込み
+  const suggestedTags = useMemo(() => {
+    const trimmedInput = inputText.trim().toLowerCase();
+    if (!trimmedInput) return []; // 入力が空ならサジェストしない
+    
+    // 複数のキーワード（スペース区切り）に対応するため、最後のキーワードでサジェストを行う
+    const keywords = trimmedInput.split(/\s+/);
+    const currentKeyword = keywords[keywords.length - 1];
+    if (!currentKeyword) return [];
+
+    return allUniqueTags.filter(tag => 
+      tag.toLowerCase().includes(currentKeyword)
+    ).slice(0, 10); // 表示は最大10件までに制限
+  }, [inputText, allUniqueTags]);
+
   // 検索を実行する関数
   const handleSearchExecute = () => {
     if (inputRef.current) {
       setSearchQuery(inputRef.current.value);
     }
+    setShowSuggest(false);
     setDisplayCount(100); // 検索実行時に表示件数をリセット
     sessionStorage.setItem('jellyfin_displayCount', '100');
     window.scrollTo({ top: 0, behavior: 'smooth' }); // 検索実行時にトップへスクロール
@@ -81,7 +116,9 @@ function Home() {
       inputRef.current.value = ''; // 入力欄を空にする
       inputRef.current.focus(); // クリア後にフォーカスを戻す（UX向上）
     }
+    setInputText('');
     setShowClearButton(false); // ボタンを隠す
+    setShowSuggest(false);
     setSearchQuery(''); // 検索条件をクリアしてリストをリセット
     setDisplayCount(100);
     sessionStorage.setItem('jellyfin_displayCount', '100');
@@ -90,8 +127,10 @@ function Home() {
 
   // 入力値の変更を検知してクリアボタンの表示状態を切り替える関数
   const handleInputChange = (e) => {
-    // 文字が1文字でもあれば true、空なら false
-    setShowClearButton(e.target.value.length > 0);
+    const val = e.target.value;
+    setInputText(val); // サジェスト用にStateを更新
+    setShowClearButton(val.length > 0);
+    setShowSuggest(true); // 入力されたらサジェストを表示
   };
 
   // Enterキーでの検索実行を検知する関数
@@ -102,6 +141,45 @@ function Home() {
       handleSearchExecute();
     }
   };
+
+  // サジェストのタグがクリックされた時の処理
+  const handleSuggestClick = (tag) => {
+    if (!inputRef.current) return;
+    
+    // 現在の入力をスペースで分割
+    const currentWords = inputText.trim().split(/\s+/);
+    // 最後の（入力中の）単語を削除し、クリックされたタグに置き換える
+    currentWords.pop();
+    currentWords.push(tag);
+    
+    // 新しい検索文字列を作成
+    const newSearchString = currentWords.join(' ');
+    
+    inputRef.current.value = newSearchString;
+    setInputText(newSearchString);
+    setShowSuggest(false);
+    
+    // 即座に検索を実行する
+    setSearchQuery(newSearchString);
+    setDisplayCount(100);
+    sessionStorage.setItem('jellyfin_displayCount', '100');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 検索窓の外側をクリックした時にサジェストを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // suggestRef と inputRef の両方の外側をクリックした場合のみ閉じる
+      if (
+        suggestRef.current && !suggestRef.current.contains(event.target) &&
+        inputRef.current && !inputRef.current.contains(event.target)
+      ) {
+        setShowSuggest(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
@@ -272,7 +350,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
-      {/* ★追加: ドロワーのオーバーレイ背景（クリックで閉じる） */}
+      {/* ドロワーのオーバーレイ背景（クリックで閉じる） */}
       {isDrawerOpen && (
         <div 
           className="fixed inset-0 bg-black/60 z-50 transition-opacity backdrop-blur-sm"
@@ -280,7 +358,7 @@ function Home() {
         />
       )}
 
-      {/* ★追加: サイドドロワー本体 */}
+      {/* サイドドロワー本体 */}
       <div 
         className={`fixed inset-y-0 left-0 w-64 bg-zinc-900 border-r border-zinc-800 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
           isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
@@ -353,6 +431,7 @@ function Home() {
               defaultValue={searchQuery}
               onKeyDown={handleKeyDown}
               onChange={handleInputChange}
+              onFocus={() => { if (inputRef.current?.value) setShowSuggest(true); }}
             />
             {/* Xボタンの条件付きレンダリング */}
             {showClearButton && (
@@ -363,6 +442,24 @@ function Home() {
               >
                 <X size={18} />
               </button>
+            )}
+
+            {/* サジェストドロップダウンUI */}
+            {showSuggest && suggestedTags.length > 0 && (
+              <div 
+                ref={suggestRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-[#27272a] border border-zinc-700 rounded-md shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto"
+              >
+                {suggestedTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => handleSuggestClick(tag)}
+                    className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
