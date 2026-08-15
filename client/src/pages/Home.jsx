@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getVideos, getLibraries, getImageUrl } from '../api';
-import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle, X, Folder } from 'lucide-react';
+import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle, X, Folder, ArrowUp } from 'lucide-react';
 
 // ローカルストレージと同期するカスタムフック
 function useLocalStorage(key, initialValue) {
@@ -37,6 +37,9 @@ function Home() {
   const [searchQuery, setSearchQuery] = useLocalStorage('jellyfin_searchQuery', '');
   // DOM（入力欄）に直接アクセスするためのRefを作成
   const inputRef = useRef(null);
+
+  // 上に戻るボタンを直接操作するための参照
+  const scrollToTopBtnRef = useRef(null);
 
   const [showClearButton, setShowClearButton] = useState(!!searchQuery);
 
@@ -348,6 +351,27 @@ function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // 上に戻るボタン用のスクロール検知ロジック
+  useEffect(() => {
+    const handleScrollTopBtn = () => {
+      if (!scrollToTopBtnRef.current) return;
+      
+      // 300px以上下にスクロールしたら表示、それ以外は隠す
+      if (window.scrollY > 300) {
+        scrollToTopBtnRef.current.style.opacity = "1";
+        scrollToTopBtnRef.current.style.pointerEvents = "auto";
+        scrollToTopBtnRef.current.style.transform = "translateY(0)";
+      } else {
+        scrollToTopBtnRef.current.style.opacity = "0";
+        scrollToTopBtnRef.current.style.pointerEvents = "none";
+        scrollToTopBtnRef.current.style.transform = "translateY(10px)";
+      }
+    };
+
+    window.addEventListener("scroll", handleScrollTopBtn, { passive: true });
+    return () => window.removeEventListener("scroll", handleScrollTopBtn);
+  }, []);
+
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
       {/* ドロワーのオーバーレイ背景（クリックで閉じる） */}
@@ -577,6 +601,15 @@ function Home() {
           
         </div>
       </div>
+
+      {/* 一番上に戻るボタン */}
+      <button
+        ref={scrollToTopBtnRef}
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="fixed bottom-6 right-6 p-3 bg-zinc-800/50 text-white rounded-full shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-zinc-700/80 z-40 opacity-0 pointer-events-none translate-y-2 border border-zinc-700/50"
+      >
+        <ArrowUp size={24} />
+      </button>
 
     </div>
   );
