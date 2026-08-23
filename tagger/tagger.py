@@ -89,6 +89,27 @@ class VideoTagger:
                 
         cap.release()
         return frames if frames else None
+
+    # 既存のNFOファイルにタグが含まれているかチェックする関数
+    def _has_existing_tags(self, video_path):
+        target_nfo_path = os.path.splitext(video_path)[0] + ".nfo"
+        
+        if not os.path.exists(target_nfo_path):
+            return False
+            
+        try:
+            tree = ET.parse(target_nfo_path)
+            root = tree.getroot()
+            
+            # <tag> 要素が1つでも存在し、かつテキストが含まれていればTrueを返す
+            for tag_elem in root.findall("tag"):
+                if tag_elem.text and tag_elem.text.strip():
+                    return True
+                    
+            return False
+        except ET.ParseError:
+            # XMLが破損している場合はタグ無しとみなして処理を続行（上書きを試みる）
+            return False
     
     # 抽出したタグをNFOファイルに追記
     def edit_nfo(self, video_path, tags):
@@ -132,6 +153,11 @@ class VideoTagger:
 
     def process_video(self, video_path, current_idx, total_files, num_frames=5, min_hits=1):
         print(f"[{current_idx}/{total_files}] 処理中: {os.path.basename(video_path)}")
+
+        # すでにタグが存在する場合は、重い推論処理をスキップする
+        if self._has_existing_tags(video_path):
+            print(" -> 既にタグが登録されたNFOファイルが存在するため、処理をスキップします。")
+            return
 
         frames = self.extract_frames(video_path, num_frames=num_frames)
         if not frames:
@@ -189,6 +215,7 @@ if __name__ == "__main__":
     # コマンドライン引数によるパス指定
     parser = argparse.ArgumentParser(description="Jellyfin用 AI動画タガー")
     parser.add_argument("target_path", type=str, help="処理対象の動画ファイル、または動画が含まれるディレクトリのパス")
+    parser.add_argument("--force", action="store_true", help="既存のNFOファイルがあっても強制的に再処理を行う")
     args = parser.parse_args()
     
     target = os.path.abspath(args.target_path)
