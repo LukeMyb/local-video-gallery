@@ -2,34 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getVideos, getLibraries, getImageUrl } from '../api';
 import { Menu, Search as SearchIcon, Heart, ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle, X, Folder, ArrowUp } from 'lucide-react';
-
-// ローカルストレージと同期するカスタムフック
-function useLocalStorage(key, initialValue) {
-  // 初期値の取得時に一度だけローカルストレージを確認する
-  const [storedValue, setStoredValue] = useState(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.warn("ローカルストレージの読み込みエラー:", error);
-      return initialValue;
-    }
-  });
-
-  // 値を更新する関数（Stateを更新しつつ、ローカルストレージにも保存）
-  const setValue = (value) => {
-    try {
-      // useStateと同じように関数での更新もサポート
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.warn("ローカルストレージの保存エラー:", error);
-    }
-  };
-
-  return [storedValue, setValue];
-}
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 function Home() {
   const [videos, setVideos] = useState([]);
