@@ -9,6 +9,7 @@ import onnxruntime as ort
 import xml.etree.ElementTree as ET
 import glob
 import argparse
+from tqdm import tqdm
 
 class VideoTagger:
     def __init__(self, 
@@ -151,18 +152,16 @@ class VideoTagger:
 
         return added_count
 
-    def process_video(self, video_path, current_idx, total_files, num_frames=5, min_hits=1):
-        print(f"[{current_idx}/{total_files}] 処理中: {os.path.basename(video_path)}")
-
+    def process_video(self, video_path, num_frames=5, min_hits=1):
         # すでにタグが存在する場合は、重い推論処理をスキップする
         if self._has_existing_tags(video_path):
             print(" -> 既にタグが登録されたNFOファイルが存在するため、処理をスキップします。")
-            return
+            return "skipped"
 
         frames = self.extract_frames(video_path, num_frames=num_frames)
         if not frames:
             print(" -> エラー: 動画の読み込み、またはフレームの抽出に失敗しました。")
-            return
+            return "error"
 
         input_tensors = [self.preprocess_image(f) for f in frames]
 
@@ -205,11 +204,7 @@ class VideoTagger:
                 
         added_count = self.edit_nfo(video_path, found_tags)
 
-        # 結果出力
-        if added_count > 0:
-            print(f" -> NFOファイルに {added_count} 個の新しいタグを追加しました。")
-        else:
-            print(" -> 追加する新しいタグはありませんでした。")
+        return f"added {added_count}"
 
 if __name__ == "__main__":
     # コマンドライン引数によるパス指定
@@ -237,8 +232,34 @@ if __name__ == "__main__":
     if not video_files:
         print("処理対象の動画が見つかりませんでした。")
     else:
+        # \tqdm を使ったプログレス表示
         total_files = len(video_files)
-        print(f"合計 {len(video_files)} 件の動画を処理します。")
+        print(f"合計 {total_files} 件の動画をスキャンします...")
+        
         tagger = VideoTagger()
-        for i, video_path in enumerate(video_files, 1):
-            tagger.process_video(video_path, current_idx=i, total_files=total_files, num_frames=5, min_hits=1)
+        skipped_count = 0
+        processed_count = 0
+        error_count = 0
+
+        # tqdmを使ってループを回す
+        with tqdm(total=total_files, desc="動画処理中", unit="file", dynamic_ncols=True) as pbar:
+            for video_path in video_files:
+                # 現在処理しているファイル名をプログレスバーの右側に表示
+                pbar.set_postfix(file=os.path.basename(video_path)[:30]) # 長い場合は30文字でカット
+                
+                result = tagger.process_video(video_path, num_frames=5, min_hits=1)
+                
+                if result == "skipped":
+                    skipped_count += 1
+                elif result == "error":
+                    error_count += 1
+                else:
+                    processed_count += 1
+                
+                pbar.update(1) # プログレスバーを1進める
+
+        # 最終結果の表示
+        print("\n--- 処理完了 ---")
+        print(f"新しくタグ付けした動画: {processed_count} 件")
+        print(f"スキップした動画(処理済): {skipped_count} 件")
+        print(f"エラーが発生した動画    : {error_count} 件")
