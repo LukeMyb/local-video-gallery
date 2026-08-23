@@ -19,7 +19,7 @@
 フロントエンドのリファクタリング closed
 hookなどを分離する
 
-README書く
+README書く closed
 タイトルの通り
 
 自動ロック防止機能
