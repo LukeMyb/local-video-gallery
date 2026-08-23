@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getVideos, getLibraries } from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Sidebar } from '../components/common/Sidebar';
@@ -32,12 +32,9 @@ function Home() {
   });
 
   const navigate = useNavigate(); // 画面遷移用のフック
-  const location = useLocation(); // 現在のパスを監視
 
   // フィルターuseEffectの初回実行ブロック用フラグ
   const isFirstMountForFilter = useRef(true);
-  // 復元すべきスクロール位置の保持用
-  const savedScrollPosition = useRef(0);
 
   // サジェスト用タグリスト生成
   const allUniqueTags = useMemo(() => {
