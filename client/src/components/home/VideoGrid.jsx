@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getImageUrl } from '../../api';
+import { getImageUrl } from '../../api/jellyfin';
 
 export function VideoGrid({ 
   loading, 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getVideos, getLibraries } from '../api';
+import { getVideos, getLibraries } from '../api/jellyfin';
 import { useLocalStorage } from './useLocalStorage';
 
 export function useVideos() {

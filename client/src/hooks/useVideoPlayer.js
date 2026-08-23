@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getVideoStreamUrl, toggleFavorite } from '../api';
+import { getVideoStreamUrl, toggleFavorite } from '../api/jellyfin';
 
 export function useVideoPlayer(id) {
   const navigate = useNavigate();
