@@ -175,19 +175,22 @@ export function useVideoPlayer(id) {
     if (isPlaying) setShowControls(false);
   }, [isPlaying]);
 
+  // ループ状態のトグル関数
+  const toggleLoop = useCallback(() => {
+    setIsLoop((prev) => !prev);
+  }, []);
+
   return {
     videoRef,
     containerRef,
     videoUrl,
     isLoop,
-    setIsLoop,
     isMobile,
     isFullscreen,
     isPlaying,
     currentTime,
     duration,
     showControls,
-    setShowControls,
     isFavorite,
     prevVideo,
     nextVideo,
@@ -207,6 +210,12 @@ export function useVideoPlayer(id) {
     handlePause,
     handleTimeUpdate,
     handleLoadedMetadata,
-    handleContainerMouseLeave
+    handleContainerMouseLeave,
+    toggleLoop,
+    
+    handleControlsMouseEnter: useCallback(() => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setShowControls(true);
+    }, [])
   };
 }

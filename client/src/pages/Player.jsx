@@ -13,18 +13,15 @@ function Player() {
     containerRef,
     videoUrl,
     isLoop,
-    setIsLoop,
     isMobile,
     isFullscreen,
     isPlaying,
     currentTime,
     duration,
     showControls,
-    setShowControls,
     isFavorite,
     prevVideo,
     nextVideo,
-    timeoutRef,
     resetControlsTimeout,
     handleToggleFavorite,
     handlePrev,
@@ -40,16 +37,16 @@ function Player() {
     handlePause,
     handleTimeUpdate,
     handleLoadedMetadata,
-    handleContainerMouseLeave
+    handleContainerMouseLeave,
+    toggleLoop,
+    handleControlsMouseEnter
   } = useVideoPlayer(id);
 
   return (
     <div 
       ref={containerRef} 
       className="fixed inset-0 z-50 w-full h-100dvh bg-black flex flex-col justify-center"
-      onMouseLeave={() => {
-        if (isPlaying) setShowControls(false);
-      }}
+      onMouseLeave={handleContainerMouseLeave}
     >
       {/* 上部コントロールバー */}
       <div 
@@ -104,12 +101,9 @@ function Player() {
         onPrev={handlePrev}
         onNext={handleNext}
         onToggleFavorite={handleToggleFavorite}
-        onToggleLoop={() => setIsLoop(!isLoop)}
+        onToggleLoop={toggleLoop}
         onToggleFullscreen={toggleFullscreen}
-        onMouseEnter={() => {
-          if (timeoutRef.current) clearTimeout(timeoutRef.current);
-          setShowControls(true);
-        }}
+        onMouseEnter={handleControlsMouseEnter}
         onMouseLeave={resetControlsTimeout}
       />
     </div>
