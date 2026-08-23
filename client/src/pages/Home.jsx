@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { getVideos, getLibraries, getImageUrl } from '../api';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { getVideos, getLibraries } from '../api';
 import { ArrowDownWideNarrow, ArrowUpNarrowWide, Shuffle, ArrowUp } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Sidebar } from '../components/common/Sidebar';
 import { SearchBar } from '../components/home/SearchBar';
+import { VideoGrid } from '../components/home/VideoGrid';
 
 function Home() {
   const [videos, setVideos] = useState([]);
@@ -29,7 +30,6 @@ function Home() {
     const saved = sessionStorage.getItem('jellyfin_displayCount');
     return saved ? parseInt(saved, 10) : 100;
   });
-  const observerTarget = useRef(null); // 監視対象要素の参照
 
   const navigate = useNavigate(); // 画面遷移用のフック
   const location = useLocation(); // 現在のパスを監視
@@ -113,32 +113,30 @@ function Home() {
     if (!loading) {
       const saved = sessionStorage.getItem('jellyfin_scrollPosition');
       if (saved) {
-        // DOMの描画が完了するのを少し待ってからスクロールを復元
-        setTimeout(() => {
-          window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
-        }, 100); // 100ms程度の遅延で描画完了を待つ（必要に応じて調整）
+        // 即座にスクロールを実行
+        window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
+        
+        // 復元後は不要になるため、セッションストレージから削除して誤動作を防ぐ
+        sessionStorage.removeItem('jellyfin_scrollPosition');
       }
     }
   }, [loading]);
 
-  // IntersectionObserverで最下部到達を検知
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setDisplayCount((prev) => {
-            const newCount = prev + 100;
-            sessionStorage.setItem('jellyfin_displayCount', newCount.toString()); // ★追加: 表示件数増加時にも保存
-            return newCount;
-          });
-        }
-      },
-      { rootMargin: '400px' } // 下端に近づいたら早めに読み込む
-    );
-
-    if (observerTarget.current) observer.observe(observerTarget.current);
-    return () => observer.disconnect();
+  // もっと読み込む（無限スクロール）ハンドラ
+  const handleLoadMore = useCallback(() => {
+    setDisplayCount((prev) => {
+      const newCount = prev + 100;
+      sessionStorage.setItem('jellyfin_displayCount', newCount.toString());
+      return newCount;
+    });
   }, []);
+
+  // 動画クリック時にスクロール位置を保存するハンドラ
+  const handleVideoClick = useCallback(() => {
+    const currentScrollY = window.scrollY;
+    sessionStorage.setItem('jellyfin_scrollPosition', currentScrollY.toString());
+    sessionStorage.setItem('jellyfin_displayCount', displayCount.toString());
+  }, [displayCount]);
 
   // ソート順(sortOrder)に応じて表示する動画リストを並び替える処理
   const { allFiltered, displayed } = useMemo(() => {
@@ -251,7 +249,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
-      {/* サイドバー */}
+      {/* SideBar */}
       <Sidebar 
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -260,7 +258,7 @@ function Home() {
         onSelectLibrary={setSelectedLibraryId}
       />
 
-      {/* サーチバー */}
+      {/* SearchBar */}
       <SearchBar 
         onOpenMenu={() => setIsDrawerOpen(true)}
         searchQuery={searchQuery}
@@ -271,55 +269,14 @@ function Home() {
         resultCount={allFiltered.length}
       />
 
-      <div className="p-2 md:p-4 pt-0 flex-1 flex flex-col gap-4 w-full">
-        {loading ? (
-          <p className="text-zinc-500 text-center mt-8 text-sm">読み込み中...</p>
-        ) : (
-          <div className="grid grid-cols-3 md:grid-cols-6 landscape:grid-cols-6 gap-2 lg:gap-4">
-            {displayed.map((video) => (
-              <Link 
-                to={`/player/${video.Id}`}
-                state={{ playlist: allFiltered }}
-                key={video.Id} 
-                className="relative rounded-md overflow-hidden bg-[#27272a] border border-zinc-800 hover:bg-zinc-700 transition-colors block group"
-                onClick={() => {
-                  const currentScrollY = window.scrollY;
-                  sessionStorage.setItem('jellyfin_scrollPosition', currentScrollY.toString());
-                  sessionStorage.setItem('jellyfin_displayCount', displayCount.toString());
-                }}
-              >
-                <img
-                  src={getImageUrl(video.Id)}
-                  alt={video.Name}
-                  className="w-full aspect-2/3 object-cover bg-zinc-800 transition-opacity group-hover:opacity-90"
-                  loading="lazy"
-                />
-
-                {/* サムネイル上のタグ表示エリア */}
-                {video.Tags && video.Tags.length > 0 && (
-                  <div 
-                    className="absolute bottom-0 left-0 right-0 p-1.5 bg-linear-to-t from-black/95 via-black/70 to-transparent flex flex-wrap gap-1 max-h-[20%] overflow-y-auto"
-                    style={{ scrollbarWidth: 'none' }} /* スクロールバーを非表示にする */
-                  >
-                    {video.Tags.map(tag => (
-                      <span 
-                        key={tag} 
-                        className="text-[9px] md:text-[10px] text-zinc-300 bg-zinc-900/80 px-1 py-0.5 rounded-sm border border-zinc-700/50 break-all"
-                      >
-                        {/* 表示時はスペース( )をアンダースコア(_)に変換 */}
-                        {tag.replace(/ /g, '_')}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* 無限スクロールの検知ポイント */}
-        <div ref={observerTarget} className="h-20" />
-      </div>
+      {/* VideoGrid */}
+      <VideoGrid 
+        loading={loading}
+        displayedVideos={displayed}
+        allFilteredVideos={allFiltered}
+        onLoadMore={handleLoadMore}
+        onVideoClick={handleVideoClick}
+      />
       
       {/* ピル型のフローティングコントロールバー */}
       <div 
