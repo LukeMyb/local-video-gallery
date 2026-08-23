@@ -1,219 +1,47 @@
-import { useRef, useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getVideoStreamUrl, toggleFavorite } from '../api';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Controls } from '../components/player/Controls';
+import { useVideoPlayer } from '../hooks/useVideoPlayer';
 
 function Player() {
   const { id } = useParams();
   const navigate = useNavigate();
-  // Home画面から渡されたstate(プレイリスト)を取得
-  const location = useLocation();
-  const playlist = location.state?.playlist || [];
 
-  const videoUrl = getVideoStreamUrl(id);
-
-  // 動画プレイヤーのDOM操作用参照と、状態管理
-  const videoRef = useRef(null);
-  const containerRef = useRef(null); // フルスクリーン化する親要素の参照
-
-  const [isLoop, setIsLoop] = useState(false);
-
-  // モバイル(スマホ・タブレット)判定
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-  }, []);
-
-  // プレイヤー画面表示中のbody背景色コントロール
-  useEffect(() => {
-    // 画面表示時: ベース背景を黒にする
-    document.body.classList.remove('bg-zinc-900');
-    document.body.classList.add('bg-black');
-
-    // 画面離脱時(一覧へ戻る時など): ベース背景を深いグレーに戻す
-    return () => {
-      document.body.classList.remove('bg-black');
-      document.body.classList.add('bg-zinc-900');
-    };
-  }, []);
-
-  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
-  const isFullscreen = isNativeFullscreen;
-
-  const [isPlaying, setIsPlaying] = useState(true); // autoPlayのため初期値true
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-
-  // 非アクティブ化のタイマー参照用
-  const timeoutRef = useRef(null);
-
-  // コントロールバー表示のタイマーリセット処理
-  const resetControlsTimeout = () => {
-    setShowControls(true);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // 再生中でなければタイマーは設定しない（ずっと表示したままにする）
-    if (!isPlaying) return;
-
-    timeoutRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
-  };
-
-  // ユーザー操作を検知してタイマーをリセットする副作用
-  useEffect(() => {
-    const handleActivity = () => {
-      resetControlsTimeout();
-    };
-
-    // マウス移動、クリック、タッチ操作などを監視
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('mousedown', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('touchstart', handleActivity);
-
-    // 初回マウント時にもタイマーを起動
-    resetControlsTimeout();
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('mousedown', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying]); // isPlayingが変化したときもタイマーを再設定する
-
-
-  // プレイリストから現在の動画の位置(インデックス)を特定し、前後の動画を取得
-  const currentIndex = playlist.findIndex((video) => video.Id === id);
-  const currentVideo = currentIndex !== -1 ? playlist[currentIndex] : null;
-  const prevVideo = currentIndex > 0 ? playlist[currentIndex - 1] : null;
-  const nextVideo = currentIndex !== -1 && currentIndex < playlist.length - 1 ? playlist[currentIndex + 1] : null;
-
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  // 動画が切り替わった時（idが変わった時）に、お気に入り状態を初期化する
-  useEffect(() => {
-    if (currentVideo && currentVideo.UserData) {
-      setIsFavorite(currentVideo.UserData.IsFavorite || false);
-    }
-  }, [id, currentVideo]);
-
-  // お気に入りボタンを押した時の処理
-  const handleToggleFavorite = async () => {
-    try {
-      // APIを呼び出して状態を反転
-      const newFavoriteStatus = await toggleFavorite(id, isFavorite);
-      setIsFavorite(newFavoriteStatus);
-      
-      // 一覧画面に戻った時にも反映されるよう、渡されたプレイリスト内のデータも更新しておく
-      if (currentVideo && currentVideo.UserData) {
-        currentVideo.UserData.IsFavorite = newFavoriteStatus;
-      }
-    } catch (error) {
-      console.error(error);
-      alert('お気に入りの更新に失敗しました');
-    }
-  };
-
-  // 前の動画へ遷移する処理
-  const handlePrev = () => {
-    if (prevVideo) {
-      navigate(`/player/${prevVideo.Id}`, { state: { playlist } });
-    }
-  };
-
-  // 次の動画へ遷移する処理
-  const handleNext = () => {
-    if (nextVideo) {
-      navigate(`/player/${nextVideo.Id}`, { state: { playlist } });
-    }
-  };
-
-  // 動画終了時の処理
-  const handleEnded = () => {
-    if (isLoop) {
-      videoRef.current.play(); // リピート時は最初から再生
-    } else {
-      handleNext(); // 次の動画へ
-    }
-  };
-
-
-  // フルスクリーン状態の変更を検知する副作用（ESCキーでの解除なども検知）
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsNativeFullscreen(!!document.fullscreenElement || !!document.webkitFullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Safari対応
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
-  // フルスクリーン切り替え処理
-  const toggleFullscreen = () => {
-    const container = containerRef.current;
-    // ネイティブフルスクリーンAPIの呼び出し
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-    }
-  };
-
-
-  // 再生・一時停止の切り替え処理
-  const togglePlay = () => {
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-    } else {
-      videoRef.current.pause();
-    }
-  };
-
-  // 10秒巻き戻し / 先送り処理
-  const skipBackward = () => {
-    if (videoRef.current) {
-      const newTime = Math.max(0, videoRef.current.currentTime - 10);
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
-  };
-  const skipForward = () => {
-    if (videoRef.current) {
-      const newTime = Math.min(duration, videoRef.current.currentTime + 10);
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
-  };
-
-  // シークバー操作時の処理
-  const handleSeek = (e) => {
-    const time = Number(e.target.value);
-    videoRef.current.currentTime = time;
-    setCurrentTime(time);
-  };
+  // ロジックと状態管理をカスタムフックに委譲
+  const {
+    videoRef,
+    containerRef,
+    videoUrl,
+    isLoop,
+    setIsLoop,
+    isMobile,
+    isFullscreen,
+    isPlaying,
+    currentTime,
+    duration,
+    showControls,
+    setShowControls,
+    isFavorite,
+    prevVideo,
+    nextVideo,
+    timeoutRef,
+    resetControlsTimeout,
+    handleToggleFavorite,
+    handlePrev,
+    handleNext,
+    handleEnded,
+    toggleFullscreen,
+    togglePlay,
+    skipBackward,
+    skipForward,
+    handleSeek,
+    handleVideoClick,
+    handlePlay,
+    handlePause,
+    handleTimeUpdate,
+    handleLoadedMetadata,
+    handleContainerMouseLeave
+  } = useVideoPlayer(id);
 
   return (
     <div 
@@ -223,7 +51,7 @@ function Player() {
         if (isPlaying) setShowControls(false);
       }}
     >
-      {/* 上部コントロールバー（戻るボタンなど） */}
+      {/* 上部コントロールバー */}
       <div 
         className={`absolute top-0 left-0 right-0 px-8 portrait:px-4 pb-6 pt-6 portrait:pt-16 landscape:pt-6 bg-linear-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 z-10 flex items-center gap-4 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -245,27 +73,19 @@ function Player() {
         playsInline
         loop={isLoop}
         onEnded={handleEnded}
-        /* 常にコンテナいっぱいに広げ、アスペクト比を維持して黒帯を入れる(object-contain) */
         className={`w-full h-full object-contain bg-black ${showControls ? 'cursor-pointer' : 'cursor-none'}`}
         src={videoUrl}
-        onMouseDown={(e) => e.stopPropagation()} // mousedownイベントがwindowに伝播するのを防ぐ
-        onClick={() => {
-          if (showControls) {
-             // 既に表示されている状態でクリックした場合は非表示にしつつ一時停止・再生切り替え
-             setShowControls(false);
-          } else {
-             resetControlsTimeout();
-          }
-        }}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onTimeUpdate={() => setCurrentTime(videoRef.current.currentTime)}
-        onLoadedMetadata={() => setDuration(videoRef.current.duration)}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={handleVideoClick}
+        onPlay={handlePlay}
+        onPause={handlePause}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
       >
         お使いのブラウザは動画の再生をサポートしていません。
       </video>
 
-      {/* Controls コンポーネント */}
+      {/* カスタムコントロールUI */}
       <Controls
         showControls={showControls}
         isPlaying={isPlaying}
@@ -290,9 +110,7 @@ function Player() {
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           setShowControls(true);
         }}
-        onMouseLeave={() => {
-          resetControlsTimeout();
-        }}
+        onMouseLeave={resetControlsTimeout}
       />
     </div>
   );
