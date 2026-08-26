@@ -1,4 +1,4 @@
-# Local Video Gallery
+# Local Video Hub
 
 ローカルの動画ファイルを管理・閲覧し、AIによる自動タグ付けを行うための統合ツールセットです。動画に自動でタグを付与するPythonスクリプト（Tagger）と、動画ギャラリーを閲覧するためのモダンなWebクライアント（Client）で構成されています。
 
