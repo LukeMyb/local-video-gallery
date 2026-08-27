@@ -43,9 +43,14 @@
    ```text
    API_KEY=your_secret_key_here
    ```
-2. Pythonの依存関係をインストールします。（tagger のライブラリも含む）
+2. Pythonの仮想環境を作成し、有効化します。（起動スクリプトが `.venv` を使用するため）
    ```bash
-   pip install fastapi uvicorn pydantic yt-dlp python-dotenv opencv-python numpy pandas huggingface-hub onnxruntime
+   python -m venv .venv
+   .venv\Scripts\activate
+   ```
+3. Pythonの依存関係をインストールします。
+   ```bash
+   pip install -r requirements.txt
    ```
 
 ### 2. Web Client (`client/`)
