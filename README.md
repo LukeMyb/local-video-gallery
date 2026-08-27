@@ -89,7 +89,7 @@ python tagger/tagger.py "C:\path\to\your\videos_folder"
 iPhoneからPC（API）へURLを送信し、自動ダウンロードを開始できます。
 
 1. **ショートカットの追加:**
-   [https://www.icloud.com/shortcuts/c4c03d26125f4a9eba98c6f6e50f8498] をタップしてショートカットを取得します。
+[ショートカットを追加する (iCloud Link)](https://www.icloud.com/shortcuts/c4c03d26125f4a9eba98c6f6e50f8498)
 
 2. **初期設定:**
    ショートカット内の設定で、以下の2箇所をご自身の環境に合わせて書き換えてください。
