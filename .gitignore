@@ -15,3 +15,14 @@ Thumbs.db
 # Project Data
 data/
 test/
+
+# 認証情報
+config/x.com_cookies.txt
+config/*.txt
+
+# 外部バイナリ
+bin/
+*.exe
+
+# ダウンロードファイル
+downloads/
