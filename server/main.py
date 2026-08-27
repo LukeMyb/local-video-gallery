@@ -1,7 +1,10 @@
 import os
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 import yt_dlp
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="Local Video Hub API")
 
@@ -16,8 +19,12 @@ os.makedirs(INBOX_DIR, exist_ok=True)
 COOKIE_FILE = os.path.join(BASE_DIR, "config", "x.com_cookies.txt")
 BIN_DIR = os.path.join(BASE_DIR, "bin")
 
+# 環境変数からAPIキーを取得
+SECRET_API_KEY = os.getenv("API_KEY")
+
 class VideoRequest(BaseModel):
     url: str
+    api_key: str
 
 def download_with_ytdlp(url: str):
     print(f"\n[{url}] ダウンロードを開始します...")
@@ -56,6 +63,10 @@ def download_with_ytdlp(url: str):
 
 @app.post("/download")
 async def download_video(request: VideoRequest, background_tasks: BackgroundTasks):
+    # APIキーの検証 (未設定、または不一致の場合は401エラー)
+    if not SECRET_API_KEY or request.api_key != SECRET_API_KEY:
+        raise HTTPException(status_code=401, detail="APIキーが間違っています")
+
     print(f"URLを受け取りました: {request.url}")
     
     # ダウンロード処理をバックグラウンドタスクとして登録
