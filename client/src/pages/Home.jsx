@@ -3,6 +3,7 @@ import { SearchBar } from '../components/home/SearchBar';
 import { VideoGrid } from '../components/home/VideoGrid';
 import { ControlBar } from '../components/home/ControlBar';
 import { useVideos } from '../hooks/useVideos';
+import { useSwipe } from '../hooks/useSwipe';
 
 function Home() {
   const {
@@ -28,8 +29,16 @@ function Home() {
     scrollToTopBtnRef
   } = useVideos();
 
+  // 右スワイプ時にサイドバー(Drawer)を開く処理を設定
+  const swipeHandlers = useSwipe({
+    onSwipeRight: () => setIsDrawerOpen(true)
+  });
+
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24">
+    <div 
+      className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col relative pb-24"
+      {...swipeHandlers}
+    >
       {/* SideBar */}
       <Sidebar 
         isOpen={isDrawerOpen}
