@@ -19,6 +19,36 @@
 
 ## ディレクトリ構成
 
+```text
+local-video-hub/
+├── .env                        # APIキーなど環境変数
+├── README.md                   # このドキュメント
+├── requirements.txt            # Pythonの依存関係
+├── start_local-video-hub.vbs   # 起動用スクリプト
+├── bin/
+│   └── ffmpeg.exe              # 動画処理用バイナリ
+├── client/                     # Webクライアント (React/Vite)
+│   ├── src/                    # フロントエンドのソースコード
+│   │   ├── api/                # API通信用関数
+│   │   ├── assets/             # 静的アセット
+│   │   ├── components/         # UIコンポーネント
+│   │   ├── hooks/              # カスタムフック
+│   │   ├── pages/              # ページコンポーネント (Home.jsx, Player.jsx等)
+│   │   ├── utils/              # ユーティリティ関数
+│   │   ├── App.jsx             # アプリケーションのルート
+│   │   └── main.jsx            # Reactエントリポイント
+│   ├── package.json            # Node.jsパッケージ設定
+│   └── vite.config.js          # Vite設定
+├── config/
+│   └── x.com_cookies.txt       # 動画ダウンロード用Cookie
+├── downloads/                  # 動画の保存先
+│   └── inbox/                  # 自動ダウンロードされた動画の初期保存先
+├── server/                     # バックエンドAPI (FastAPI)
+│   └── main.py                 # APIサーバーのメインスクリプト
+└── tagger/                     # AI動画タグ生成ツール
+    └── tagger.py               # タグ抽出・NFO更新スクリプト
+```
+
 - `client/` : ビデオギャラリーを表示するためのReact/Viteアプリケーション。
 - `server/` : 動画ダウンロードリクエストを受け付けるFastAPIバックエンド。
 - `tagger/` : 動画からタグを抽出し、`.nfo` ファイルを編集するPythonスクリプト。
