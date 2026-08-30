@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* ブラウザ標準のスワイプナビゲーション（戻る/進む）を無効化 */
+html, body {
+  overscroll-behavior-x: none;
+}
